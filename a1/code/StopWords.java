@@ -52,6 +52,8 @@ public class StopWords {
 
   public static void main(String[] args) throws Exception {
     Configuration conf = new Configuration();
+    // Set separator to write as a csv file
+    conf.set("mapred.textoutputformat.separator", ", ");
     Job job = Job.getInstance(conf, "stop words");
     job.setJarByClass(StopWords.class);
     job.setMapperClass(TokenizerMapper.class);
