@@ -54,6 +54,11 @@ public class StopWords {
     Configuration conf = new Configuration();
     // Set separator to write as a csv file
     conf.set("mapred.textoutputformat.separator", ", ");
+    // Set compression
+    if ((args.length >= 5) && (Integer.parseInt(args[4]) == 1)) {
+        conf.set("mapreduce.map.output.compress", "true");
+    }
+
     Job job = Job.getInstance(conf, "stop words");
     job.setJarByClass(StopWords.class);
 
