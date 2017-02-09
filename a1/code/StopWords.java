@@ -22,9 +22,9 @@ public class StopWords {
     public void map(Object key, Text value, Context context
                     ) throws IOException, InterruptedException {
       // Splits a string to tokens (here words)
-      StringTokenizer itr = new StringTokenizer(value.toString());
+      StringTokenizer itr = new StringTokenizer(value.toString(), " .,?!");
       while (itr.hasMoreTokens()) {
-        word.set(itr.nextToken());
+        word.set(itr.nextToken().toLowerCase().trim());
         // Write one (key, value) pair to context
         context.write(word, one);
       }
