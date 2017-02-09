@@ -56,9 +56,17 @@ public class StopWords {
     conf.set("mapred.textoutputformat.separator", ", ");
     Job job = Job.getInstance(conf, "stop words");
     job.setJarByClass(StopWords.class);
+
+    // Set number of reducers and combiner through cli
+    if (args.length >= 3) {
+        job.setNumReduceTasks(Integer.parseInt(args[2]));
+    }
+    if ((args.length >= 4) && (Integer.parseInt(args[3]) == 1)) {
+        job.setCombinerClass(IntSumReducer.class);
+    }
     job.setMapperClass(TokenizerMapper.class);
-    job.setCombinerClass(IntSumReducer.class);
     job.setReducerClass(IntSumReducer.class);
+
     job.setOutputKeyClass(Text.class);
     job.setOutputValueClass(IntWritable.class);
     FileInputFormat.addInputPath(job, new Path(args[0]));
