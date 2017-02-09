@@ -71,6 +71,16 @@ public class StopWords {
     job.setOutputValueClass(IntWritable.class);
     FileInputFormat.addInputPath(job, new Path(args[0]));
     FileOutputFormat.setOutputPath(job, new Path(args[1]));
-    System.exit(job.waitForCompletion(true) ? 0 : 1);
+    long startTime = System.nanoTime();
+    if (job.waitForCompletion(true)) {
+      long endTime = System.nanoTime();
+      float duration = (endTime - startTime);
+      duration /= 1000000000;
+      System.out.println("***** Elapsed: " + duration + "s *****\n");
+      System.exit(0);
+    }
+    else {
+      System.exit(1);
+    }
   }
 }
