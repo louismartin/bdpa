@@ -1,5 +1,10 @@
 import java.io.IOException;
 import java.util.StringTokenizer;
+import java.util.HashSet;
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -20,19 +25,59 @@ public class InvertedIndex {
     private Text word = new Text();
     private Text file = new Text();
 
+    public static HashSet<String> readStopWords() {
+        // Read stopwords into a HashSet for fast membership testing
+        // The hashtable underlying structure provides O(1) membership testing
+        HashSet<String> stopWords = new HashSet<String>();
+
+        // Read csv file: inspired from https://www.mkyong.com/java/how-to-read-and-parse-csv-file-in-java/
+        String csvFile = "stopwords.csv";
+        BufferedReader br = null;
+        String line = "";
+        String cvsSplitBy = ",";
+
+        try {
+            br = new BufferedReader(new FileReader(csvFile));
+            while ((line = br.readLine()) != null) {
+                // use comma as separator
+                String[] splittedLine = line.split(cvsSplitBy);
+                stopWords.add(splittedLine[0]);
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (br != null) {
+                try {
+                    br.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return stopWords;
+    }
+
     public void map(Object key, Text value, Context context
                     ) throws IOException, InterruptedException {
       // Get the filename (taken from stackoverflow)
       FileSplit fileSplit = (FileSplit) context.getInputSplit();
       String filename = fileSplit.getPath().getName();
       file.set(filename);
+      // Get stop words
+      HashSet<String> stopWords = TokenizerMapper.readStopWords();
 
       // Splits a string to tokens (here words)
       StringTokenizer itr = new StringTokenizer(value.toString(), " .,?!");
+      String token = new String();
       while (itr.hasMoreTokens()) {
-        word.set(itr.nextToken().toLowerCase().trim());
-        // Write one (key, value) pair to context
-        context.write(word, file);
+        token = itr.nextToken().toLowerCase().trim();
+        if (!stopWords.contains(token)) {
+          word.set(token);
+          // Write one (key, value) pair to context
+          context.write(word, file);
+        }
       }
     }
   }
