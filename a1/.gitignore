@@ -3,3 +3,5 @@ data
 *.jar
 out*
 .out*
+*.crc
+*.csv
