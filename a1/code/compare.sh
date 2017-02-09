@@ -11,15 +11,15 @@ hadoop fs -getmerge out stopwords.csv;
 
 # 10 reducers , 1 combiner
 rm -rf .out* out*
-hadoop jar run.jar StopWords.jar ../data/ out 10 1 0;
+hadoop jar StopWords.jar StopWords ../data/ out 10 1 0;
 hadoop fs -getmerge out stopwords.csv;
 
 # 10 reducers , 1 combiner, compression
 rm -rf .out* out*
-hadoop jar run.jar StopWords.jar ../data/ out 10 1 1;
+hadoop jar StopWords.jar StopWords ../data/ out 10 1 1;
 hadoop fs -getmerge out stopwords.csv;
 
 # 50 reducers , 1 combiner, compression
 rm -rf .out* out*
-hadoop jar run.jar StopWords.jar ../data/ out 10 1 1;
+hadoop jar StopWords.jar StopWords ../data/ out 10 1 1;
 hadoop fs -getmerge out stopwords.csv;
