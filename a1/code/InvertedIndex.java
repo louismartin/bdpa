@@ -23,6 +23,10 @@ import org.apache.hadoop.mapreduce.TaskCounter;
 
 public class InvertedIndex {
 
+  public static enum WordCounter {
+    WORD_IN_UNIQUE_FILE
+  };
+
   public static class TokenizerMapper
        extends Mapper<Object, Text, Text, Text>{
     private Text word = new Text();
@@ -94,13 +98,26 @@ public class InvertedIndex {
                        ) throws IOException, InterruptedException {
 
       String postingList = new String();
+      int postingListSize = 0;
       for (Text val : values) {
         postingList += val + ", ";
+        postingListSize += 1;
       }
       // Remove last two characters of string
       postingList = postingList.substring(0, postingList.length()-2);
       result.set(postingList);
       context.write(key, result);
+
+      if (postingListSize == 1) {
+        // Increment counter for word appearing in a single document only.
+        // We are guaranteed that this is the only moment that the counter will
+        // be incremented for this word because all all the values from a given
+        // key all go to the same reduce call.
+        // CAREFUL: This assumption is not valid anymore if using this class as
+        // a combiner too, the counter will not work.
+        context.getCounter(WordCounter.WORD_IN_UNIQUE_FILE).increment(1);
+      }
+
     }
   }
 
@@ -142,6 +159,8 @@ public class InvertedIndex {
       Counters counters = job.getCounters();
       Counter uniqueKeysCounter = counters.findCounter(TaskCounter.REDUCE_INPUT_GROUPS);
       System.out.println("Unique words: " + uniqueKeysCounter.getValue());
+      Counter wordInUniqueFileCounter = counters.findCounter(WordCounter.WORD_IN_UNIQUE_FILE);
+      System.out.println(wordInUniqueFileCounter.getDisplayName() + ": " + wordInUniqueFileCounter.getValue());
       System.exit(0);
     }
     else {
