@@ -16,6 +16,9 @@ import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.Counters;
+import org.apache.hadoop.mapreduce.Counter;
+import org.apache.hadoop.mapreduce.TaskCounter;
 
 
 public class InvertedIndex {
@@ -134,6 +137,11 @@ public class InvertedIndex {
       float duration = (endTime - startTime);
       duration /= 1000000000;
       System.out.println("***** Elapsed: " + duration + "s *****\n");
+
+      // Retrieve unique words from counter
+      Counters counters = job.getCounters();
+      Counter uniqueKeysCounter = counters.findCounter(TaskCounter.REDUCE_INPUT_GROUPS);
+      System.out.println("Unique words: " + uniqueKeysCounter.getValue());
       System.exit(0);
     }
     else {
