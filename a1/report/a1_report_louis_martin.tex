@@ -16,7 +16,7 @@
 \usepackage{listings}       % Write code in a listing
 \usepackage[left=2.5cm,right=2.5cm,top=3cm,bottom=3cm]{geometry}
 
-\graphicspath{ {data/} }
+\graphicspath{ {assets/} }
 
 % Operators
 \DeclarePairedDelimiter\abs{\lvert}{\rvert} % abs
@@ -92,13 +92,13 @@ The configuration comes from the \href{https://hadoop.apache.org/docs/stable/had
 The following configuration files allows Hadoop and YARN to run in a pseudo-distributed mode.
 \begin{itemize}
     \item \textbf{core-site.xml:}
-    \lstinputlisting[firstline=19, lastline=24, language=xml]{data/core-site.xml}
+    \lstinputlisting[firstline=19, lastline=24, language=xml]{assets/core-site.xml}
     \item \textbf{hdfs-site.xml:}
-    \lstinputlisting[firstline=19, lastline=24, language=xml]{data/hdfs-site.xml}
+    \lstinputlisting[firstline=19, lastline=24, language=xml]{assets/hdfs-site.xml}
     \item \textbf{mapred-site.xml:}
-    \lstinputlisting[firstline=19, lastline=24, language=xml]{data/mapred-site.xml}
+    \lstinputlisting[firstline=19, lastline=24, language=xml]{assets/mapred-site.xml}
     \item \textbf{yarn-site.xml:}
-    \lstinputlisting[firstline=15, lastline=29, language=xml]{data/yarn-site.xml}
+    \lstinputlisting[firstline=15, lastline=29, language=xml]{assets/yarn-site.xml}
     \item \textbf{Commands to set up HDFS and YARN:}
     \begin{lstlisting}[language=bash]
       # Format the filesystem
@@ -152,7 +152,7 @@ In order to facilitate compiling the $.java$ files into $.jar$ files, I created
 the $compile.sh$ script which takes as input parameter the name of the main class of the $.java$ file.
 \\Example: \lstinline{./compile.sh StopWords}.
 \\ \textbf{compile.sh}:
-\lstinputlisting[language=bash]{data/compile.sh}
+\lstinputlisting[language=bash]{assets/compile.sh}
 
 \subsection{(30) Stop words}
 
@@ -165,21 +165,21 @@ i.e it retrieves the words with wordcount greater than 4000.
   \item \textbf{Mapper}:\\
   This mapper splits a string into words (tokens) and outputs one (key, value) pair
   for each word with the key being the word and the value equal to 1.
-  \lstinputlisting[firstnumber=18, firstline=18, lastline=34, language=java]{data/StopWords.java}
+  \lstinputlisting[firstnumber=18, firstline=18, lastline=34, language=java]{assets/StopWords.java}
   \item \textbf{Reducer}:\\
   The reducers, simply counts the number of occurences of each key writes it to
   the output file only if its count is greater than 4000.
-  \lstinputlisting[firstnumber=36, firstline=36, lastline=53, language=java]{data/StopWords.java}
+  \lstinputlisting[firstnumber=36, firstline=36, lastline=53, language=java]{assets/StopWords.java}
   \item \textbf{Job configuration}:\\
   The MapReduce task is set to write the output as a csv file.
   We can set the number of reducers, combiner and compression through command line
   arguments.
-  \lstinputlisting[firstnumber=55, firstline=55, lastline=101, language=java]{data/StopWords.java}
+  \lstinputlisting[firstnumber=55, firstline=55, lastline=101, language=java]{assets/StopWords.java}
   \item \textbf{Script that runs the experiments}:\\
   We run the set of experiments with the /textbf{run_stopwords.sh} script.
   This script executes the StopWords MapReduce task with different parameters
   and merges all the outputs into a csv file in HDFS.
-  \lstinputlisting[language=bash]{data/run_stopwords.sh}
+  \lstinputlisting[language=bash]{assets/run_stopwords.sh}
 
 \end{itemize}
 
