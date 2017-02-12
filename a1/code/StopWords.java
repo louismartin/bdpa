@@ -10,6 +10,8 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.fs.FileSystem;
+
 
 public class StopWords {
 
@@ -52,6 +54,14 @@ public class StopWords {
 
   public static void main(String[] args) throws Exception {
     Configuration conf = new Configuration();
+    // Remove output folder if it exists
+    Path output = new Path(args[1]);
+    FileSystem hdfs = FileSystem.get(conf);
+    // delete existing directory
+    if (hdfs.exists(output)) {
+        hdfs.delete(output, true);
+    }
+
     // Set separator to write as a csv file
     conf.set("mapred.textoutputformat.separator", ", ");
     // Set compression
