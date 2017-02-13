@@ -176,7 +176,7 @@ i.e it retrieves the words with wordcount greater than 4000.
   arguments.
   \lstinputlisting[firstnumber=55, firstline=55, lastline=101, language=java]{assets/StopWords.java}
   \item \textbf{Script that runs the experiments}:\\
-  We run the set of experiments with the /textbf{run_stopwords.sh} script.
+  We run the set of experiments with the \textbf{run\_stopwords.sh} script.
   This script executes the StopWords MapReduce task with different parameters
   and merges all the outputs into a csv file in HDFS.
   \lstinputlisting[language=bash]{assets/run_stopwords.sh}
@@ -184,17 +184,55 @@ i.e it retrieves the words with wordcount greater than 4000.
 \end{itemize}
 
 \subsubsection{(10) 10 Reducers and no Combiner}
+The running time with 10 reducers is \textbf{126 seconds}.
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=.6\textwidth]{stopwords_10_reducers.png}
+\end{figure}
 \subsubsection{(10) 10 Reducers and Combiner}
+The running time with 10 reducers and 1 combiner is \textbf{105 seconds}.
+The running time is lower with the combiner. Indeed the combiner takes the output
+of each mapper separately and tries to reduce as many (key, value) pairs coming
+from this specific mapper as it can.
+Combining the data like this will lower the load for the reducers, and all the
+intermediary steps like for example sorting all the (key, value) pairs and assign them
+to each reducer.
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=.6\textwidth]{stopwords_10_reducers_1_combiner.png}
+\end{figure}
 \subsubsection{(5) 10 Reducers and Combiner and Compression}
-
-mapred.compress.map.output: Is the compression of data between the mapper and the reducer. If you use snappy codec this will most likely increase read write speed and reduce network overhead. Don't worry about spitting here. These files are not stored in hdfs. They are temp files that exist only for the map reduce job.
-
-
+Compression compresses the data between the mappers and the reducers.
+The running time with 10 reducers, 1 combiner and compression is \textbf{125 seconds}.
+The running time increased. This can be explained by the fact that compression adds
+an additional overhead and its benefit is not used for a single node cluster!
+Indeed compression is often use to reduce network transfer times, which does not
+occur here as all the mappers and reducers are on the same device.
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=.6\textwidth]{stopwords_10_reducers_1_combiner_compression.png}
+\end{figure}
 
 \subsubsection{(5) 50 Reducers and Combiner and Compression}
+The running time with 50 reducers, 1 combiner and compression is \textbf{126 seconds}.
+The running time is about the same as the previous experiment.
+We did not benefit from the additional number of reducers.
+This is logical because with a single node cluster, the processing power caps with
+the limited number of cores. No additional gain is achieved with this extra parallelization.
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=.6\textwidth]{stopwords_50_reducers_1_combiner_compression.png}
+\end{figure}
 
-\subsection{(30) Inverted index}
 \subsection{(10) Unique words}
+\begin{\begin{itemize}
+  \item \textbf{readStopWords function:}\\
+  First we need to read the stopwords from the csv file. We do it with the readStopWords function.
+  This function is
+  \lstinputlisting[firstnumber=30, firstline=30, lastline=62, language=java]{assets/InvertedIndex.java}
+  \item \textbf{Mapper:}
+
+\end{itemize}
 \subsection{(30) Inverted index with frequency}
 
 \section{(30) Bonus: Relative frequencies}
