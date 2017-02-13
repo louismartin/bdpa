@@ -1,4 +1,4 @@
-\documentclass[a4paper,12pt]{article}
+\documentclass[a4paper,10pt]{article}
 
 \usepackage[utf8]{inputenc} % allow utf-8 input
 \usepackage{hyperref}       % hyperlinks
@@ -14,7 +14,7 @@
 \usepackage{bbm}            % Nice symbols
 \usepackage{mathtools}      % Math tools like operators
 \usepackage{listings}       % Write code in a listing
-\usepackage[left=2.5cm,right=2.5cm,top=3cm,bottom=3cm]{geometry}
+\usepackage[left=2cm,right=2cm,top=3cm,bottom=3cm]{geometry}
 
 \graphicspath{ {assets/} }
 
@@ -145,21 +145,36 @@ The supposed fix was to add
 \end{lstlisting}
 to \lstinline{/etc/systemd/logind.conf} and restart.
 
+As I could find a solution I had to cope with the problem and restart all the
+services every once in a while.
 
 \section{Inverted index}
-
+\subsection*{Workflow}
 In order to facilitate compiling the $.java$ files into $.jar$ files, I created
 the $compile.sh$ script which takes as input parameter the name of the main class of the $.java$ file.
 \\Example: \lstinline{./compile.sh StopWords}.
 \\ \textbf{compile.sh}:
 \lstinputlisting[language=bash]{assets/compile.sh}
 
-\subsection{(30) Stop words}
+\subsection*{Assumptions}
+After investigating the results of the different mapreduce jobs, I chose to define
+all of the following characters as words separators
+\\ \textbf{Separators:} .,?!"'()[]\$*-\_;:\|
+
+Even if I lost some hyphenated words and contractions like "first-born" or "He's", the gain in
+coherence and clarity was worth the hassle.
+
+\subsection{Stop words\\
+(30) Run a MapReduce program to identify stop words (words with frequency $> 4000$)
+for the given document corpus. Store them in a single csv file on HDFS
+(stopwords.csv). You can edit the several parts of the reducers’ output after the job
+finishes (with hdfs commands or with a text editor), in order to merge them as a single
+csv file.}
 
 
 Based on the wordcount example from the \href{https://hadoop.apache.org/docs/stable/hadoop-mapreduce-client/hadoop-mapreduce-client-core/MapReduceTutorial.html}{official documentation},
 we implement a MapReduce program that retrieves all the stopwords from a corpus,
-i.e it retrieves the words with wordcount greater than 4000.
+i.e. it retrieves the words with wordcount greater than 4000.
 \\The file is \textbf{StopWords.java}
 \begin{itemize}
   \item \textbf{Mapper}:\\
@@ -175,67 +190,130 @@ i.e it retrieves the words with wordcount greater than 4000.
   We can set the number of reducers, combiner and compression through command line
   arguments.
   \lstinputlisting[firstnumber=55, firstline=55, lastline=101, language=java]{assets/StopWords.java}
-  \item \textbf{Script that runs the experiments}:\\
+  \item \textbf{Script running the experiments}:\\
   We run the set of experiments with the \textbf{run\_stopwords.sh} script.
   This script executes the StopWords MapReduce task with different parameters
   and merges all the outputs into a csv file in HDFS.
   \lstinputlisting[language=bash]{assets/run_stopwords.sh}
-
 \end{itemize}
 
-\subsubsection{(10) 10 Reducers and no Combiner}
+\subsubsection{(10) Use 10 reducers and do not use a combiner. Report the execution time.}
 The running time with 10 reducers is \textbf{126 seconds}.
-\begin{figure}[!htbp]
+\begin{figure}[H]
   \centering
   \includegraphics[width=.6\textwidth]{stopwords_10_reducers.png}
 \end{figure}
-\subsubsection{(10) 10 Reducers and Combiner}
-The running time with 10 reducers and 1 combiner is \textbf{105 seconds}.
+
+\subsubsection{(10) Run the same program again, this time using a Combiner. Report the
+execution time. Is there any difference in the execution time, compared to
+the previous execution? Why?}
+The running time with 10 reducers and combiner is \textbf{105 seconds}.
 The running time is lower with the combiner. Indeed the combiner takes the output
 of each mapper separately and tries to reduce as many (key, value) pairs coming
 from this specific mapper as it can.
 Combining the data like this will lower the load for the reducers, and all the
-intermediary steps like for example sorting all the (key, value) pairs and assign them
-to each reducer.
-\begin{figure}[!htbp]
+intermediary steps between the mappers and the reducers such as network transfer
+(does not occur for a pseudo-distributed cluster), sorting all the (key, value)
+pairs, assigning them to each reducer...
+\begin{figure}[H]
   \centering
   \includegraphics[width=.6\textwidth]{stopwords_10_reducers_1_combiner.png}
 \end{figure}
-\subsubsection{(5) 10 Reducers and Combiner and Compression}
+
+\subsubsection{(5) Run the same program again, this time compressing the intermediate
+results of map (using any codec you wish). Report the execution time. Is there
+any difference in the execution, time compared to the previous execution?
+Why?}
 Compression compresses the data between the mappers and the reducers.
-The running time with 10 reducers, 1 combiner and compression is \textbf{125 seconds}.
+The running time with 10 reducers, combiner and compression is \textbf{125 seconds}.
 The running time increased. This can be explained by the fact that compression adds
 an additional overhead and its benefit is not used for a single node cluster!
-Indeed compression is often use to reduce network transfer times, which does not
+Indeed compression is often used to reduce network transfer times, which does not
 occur here as all the mappers and reducers are on the same device.
-\begin{figure}[!htbp]
+\begin{figure}[H]
   \centering
   \includegraphics[width=.6\textwidth]{stopwords_10_reducers_1_combiner_compression.png}
 \end{figure}
 
-\subsubsection{(5) 50 Reducers and Combiner and Compression}
-The running time with 50 reducers, 1 combiner and compression is \textbf{126 seconds}.
+\subsubsection{(5) Run the same program again, this time using 50 reducers. Report the
+execution time. Is there any difference in the execution time, compared to
+the previous execution? Why?}
+The running time with 50 reducers, combiner and compression is \textbf{126 seconds}.
 The running time is about the same as the previous experiment.
 We did not benefit from the additional number of reducers.
 This is logical because with a single node cluster, the processing power caps with
 the limited number of cores. No additional gain is achieved with this extra parallelization.
-\begin{figure}[!htbp]
+\begin{figure}[H]
   \centering
   \includegraphics[width=.6\textwidth]{stopwords_50_reducers_1_combiner_compression.png}
 \end{figure}
 
-\subsection{(10) Unique words}
-\begin{\begin{itemize}
+
+\subsection{(30) Implement a simple inverted index for the given document corpus, as shown in
+the previous Table, skipping the words of stopwords.csv.}
+The inverted index is implemented in \textbf{InvertedIndex.java}.
+\begin{itemize}
   \item \textbf{readStopWords function:}\\
   First we need to read the stopwords from the csv file. We do it with the readStopWords function.
-  This function is
-  \lstinputlisting[firstnumber=30, firstline=30, lastline=62, language=java]{assets/InvertedIndex.java}
-  \item \textbf{Mapper:}
+  \lstinputlisting[firstnumber=52, firstline=52, lastline=84, language=java]{assets/InvertedIndex.java}
 
+  \item \textbf{Mapper:}\\
+  Our mapper here outputs only words which are not in stopwords.csv as keys and
+  the file from which they came from as values (formatted as a posting list).
+  These posting lists are implemented using a custom class of MapWritable in order
+  to have all the ComparableWritable properties that Hadoop's MapReduce needs (more details below).
+  The posting list returned by the mapper is just a map containing one element
+  which is a (key, value) pair of the form (filename, 1).
+  \lstinputlisting[firstnumber=87, firstline=87, lastline=116, language=java]{assets/InvertedIndex.java}
+
+  \item \textbf{Reducer:}\\
+  Our reducer reduces all the posting lists it receives and also counts the number
+  of occurences of each word for the following frequency part (more details below).
+  \lstinputlisting[firstnumber=124, firstline=124, lastline=147, language=java]{assets/InvertedIndex.java}
 \end{itemize}
-\subsection{(30) Inverted index with frequency}
 
-\section{(30) Bonus: Relative frequencies}
+\subsection{(10) How many unique words exist in the document corpus (excluding stop words)?
+Which counter(s) reveal(s) this information? Define your own counter for the number
+of words appearing in a single document only. What is the value of this counter? Store
+the final value of this counter on a new file on HDFS.}
+The counter that counts the unique words in the documents is \textbf{TaskCounter.REDUCE\_INPUT\_GROUPS}.
+This counter counts the number of keys which is exactly the number of unique words.
+
+In order to count the words appearing in a single document only, we implement the following counter:
+\lstinputlisting[firstnumber=31, firstline=31, lastline=33, language=java]{assets/InvertedIndex.java}
+Which is incremented in the reducer's reduce function:
+\lstinputlisting[firstnumber=160, firstline=160, lastline=166, language=java]{assets/InvertedIndex.java}
+
+The counter gives us a count \textbf{36343 words appearing in a single document only}
+which seems pretty high given the number of total unique words 56491
+(excluding about 140 stopwords).
+
+After investigation, a lot of words appear only in pg3200.txt which are the Mark Twain works.
+This file is roughly 300.000 lines long, which is about three times longer than the other files.
+This might explained why it contains a lot more vocabulary specific than the rest.
+
+The counter value is stored in a file in HDFS:
+\lstinputlisting[firstnumber=220, firstline=220, lastline=227, language=java]{assets/InvertedIndex.java}
+
+\subsection{(30) Extend the inverted index of (b), in order to keep the frequency of each word for
+each document. You are required to use a Combiner.}
+\begin{itemize}
+  \item \textbf{PostingListWritable:}\\
+  As explained before we implemented a custom class extending MapWritable in order to have
+  all the ComparableWritable properties that hadoop needs and to be able to use a
+  combiner along with a reducer without losing the word frequencies during the transfer.
+  The custom class allows pretty printing a MapWritable instance to a file.
+  \lstinputlisting[firstnumber=36, firstline=36, lastline=49, language=java]{assets/InvertedIndex.java}
+  \item \textbf{Combiner:}\\
+  Different posting lists coming from different mappers or combiners can be reduced
+  into a single one using the reduce function of the combiner.
+  \lstinputlisting[firstnumber=119, firstline=119, lastline=147, language=java]{assets/InvertedIndex.java}
+  \item \textbf{Reducer:}\\
+  The reducer shares the reduce function (it is a child of the combiner) with the combiner with the only exception
+  that it will increment the counter for words in unique documents (which should only occur
+  once per key and therefore only in the reducer).
+  \lstinputlisting[firstnumber=150, firstline=150, lastline=168, language=java]{assets/InvertedIndex.java}
+\end{itemize}
 
 \end{document}
 
