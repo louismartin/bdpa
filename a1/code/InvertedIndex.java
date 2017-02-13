@@ -78,7 +78,7 @@ public class InvertedIndex {
       HashSet<String> stopWords = InvertedIndex.readStopWords();
 
       // Splits a string to tokens (here words)
-      StringTokenizer itr = new StringTokenizer(value.toString(), " .,?!");
+      StringTokenizer itr = new StringTokenizer(value.toString(), " .,?!\"'()[]$*-_;:|");
       String token = new String();
       while (itr.hasMoreTokens()) {
         token = itr.nextToken().toLowerCase().trim();
