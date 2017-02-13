@@ -98,18 +98,22 @@ public class InvertedIndex {
                        Context context
                        ) throws IOException, InterruptedException {
 
+      HashSet<Text> processedValues = new HashSet<Text>();
       String postingList = new String();
       int postingListSize = 0;
       for (Text val : values) {
-        postingList += val + ", ";
-        postingListSize += 1;
+        // We only want unique values
+        if (!processedValues.contains(val)) {
+          postingList += val + ", ";
+          processedValues.add(val);
+        }
       }
-      // Remove last two characters of string
+      // Remove last comma and space of string
       postingList = postingList.substring(0, postingList.length()-2);
       result.set(postingList);
       context.write(key, result);
 
-      if (postingListSize == 1) {
+      if (processedValues.size() == 1) {
         // Increment counter for word appearing in a single document only.
         // We are guaranteed that this is the only moment that the counter will
         // be incremented for this word because all all the values from a given
