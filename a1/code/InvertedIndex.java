@@ -19,6 +19,7 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.Counters;
 import org.apache.hadoop.mapreduce.Counter;
 import org.apache.hadoop.mapreduce.TaskCounter;
+import org.apache.hadoop.fs.FileSystem;
 
 
 public class InvertedIndex {
@@ -123,6 +124,13 @@ public class InvertedIndex {
 
   public static void main(String[] args) throws Exception {
     Configuration conf = new Configuration();
+    // Remove output folder if it exists
+    Path output = new Path(args[1]);
+    FileSystem hdfs = FileSystem.get(conf);
+    // delete existing directory
+    if (hdfs.exists(output)) {
+        hdfs.delete(output, true);
+    }
 
     // Set separator to write as a csv file
     conf.set("mapred.textoutputformat.separator", ": ");
