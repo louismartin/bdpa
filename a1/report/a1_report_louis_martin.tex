@@ -92,13 +92,13 @@ The configuration comes from the \href{https://hadoop.apache.org/docs/stable/had
 The following configuration files allows Hadoop and YARN to run in a pseudo-distributed mode.
 \begin{itemize}
     \item \textbf{core-site.xml:}
-    \lstinputlisting[firstline=19, lastline=24, language=xml]{assets/core-site.xml}
+    \lstinputlisting[firstline=19, lastline=24, language=xml]{assets/hadoop_conf/core-site.xml}
     \item \textbf{hdfs-site.xml:}
-    \lstinputlisting[firstline=19, lastline=24, language=xml]{assets/hdfs-site.xml}
+    \lstinputlisting[firstline=19, lastline=24, language=xml]{assets/hadoop_conf/hdfs-site.xml}
     \item \textbf{mapred-site.xml:}
-    \lstinputlisting[firstline=19, lastline=24, language=xml]{assets/mapred-site.xml}
+    \lstinputlisting[firstline=19, lastline=24, language=xml]{assets/hadoop_conf/mapred-site.xml}
     \item \textbf{yarn-site.xml:}
-    \lstinputlisting[firstline=15, lastline=29, language=xml]{assets/yarn-site.xml}
+    \lstinputlisting[firstline=15, lastline=29, language=xml]{assets/hadoop_conf/yarn-site.xml}
     \item \textbf{Commands to set up HDFS and YARN:}
     \begin{lstlisting}[language=bash]
       # Format the filesystem
@@ -154,12 +154,12 @@ In order to facilitate compiling the $.java$ files into $.jar$ files, I created
 the $compile.sh$ script which takes as input parameter the name of the main class of the $.java$ file.
 \\Example: \lstinline{./compile.sh StopWords}.
 \\ \textbf{compile.sh}:
-\lstinputlisting[language=bash]{assets/compile.sh}
+\lstinputlisting[language=bash]{assets/code/compile.sh}
 
 \subsection*{Assumptions}
 After investigating the results of the different mapreduce jobs, I chose to define
-all of the following characters as words separators
-\\ \textbf{Separators:} .,?!"'()[]\$*-\_;:\|
+all of the following characters as words separators in addition to space
+\\ \textbf{Separators:} .,?!"'()[]\$*-\_;:$|$
 
 Even if I lost some hyphenated words and contractions like "first-born" or "He's", the gain in
 coherence and clarity was worth the hassle.
@@ -180,21 +180,21 @@ i.e. it retrieves the words with wordcount greater than 4000.
   \item \textbf{Mapper}:\\
   This mapper splits a string into words (tokens) and outputs one (key, value) pair
   for each word with the key being the word and the value equal to 1.
-  \lstinputlisting[firstnumber=18, firstline=18, lastline=34, language=java]{assets/StopWords.java}
+  \lstinputlisting[firstnumber=18, firstline=18, lastline=34, language=java]{assets/code/StopWords.java}
   \item \textbf{Reducer}:\\
   The reducers, simply counts the number of occurences of each key writes it to
   the output file only if its count is greater than 4000.
-  \lstinputlisting[firstnumber=36, firstline=36, lastline=53, language=java]{assets/StopWords.java}
+  \lstinputlisting[firstnumber=36, firstline=36, lastline=53, language=java]{assets/code/StopWords.java}
   \item \textbf{Job configuration}:\\
   The MapReduce task is set to write the output as a csv file.
   We can set the number of reducers, combiner and compression through command line
   arguments.
-  \lstinputlisting[firstnumber=55, firstline=55, lastline=101, language=java]{assets/StopWords.java}
+  \lstinputlisting[firstnumber=55, firstline=55, lastline=101, language=java]{assets/code/StopWords.java}
   \item \textbf{Script running the experiments}:\\
   We run the set of experiments with the \textbf{run\_stopwords.sh} script.
   This script executes the StopWords MapReduce task with different parameters
   and merges all the outputs into a csv file in HDFS.
-  \lstinputlisting[language=bash]{assets/run_stopwords.sh}
+  \lstinputlisting[language=bash]{assets/code/run_stopwords.sh}
 \end{itemize}
 
 \subsubsection{(10) Use 10 reducers and do not use a combiner. Report the execution time.}
@@ -255,7 +255,7 @@ The inverted index is implemented in \textbf{InvertedIndex.java}.
 \begin{itemize}
   \item \textbf{readStopWords function:}\\
   First we need to read the stopwords from the csv file. We do it with the readStopWords function.
-  \lstinputlisting[firstnumber=52, firstline=52, lastline=84, language=java]{assets/InvertedIndex.java}
+  \lstinputlisting[firstnumber=52, firstline=52, lastline=84, language=java]{assets/code/InvertedIndex.java}
 
   \item \textbf{Mapper:}\\
   Our mapper here outputs only words which are not in stopwords.csv as keys and
@@ -264,12 +264,12 @@ The inverted index is implemented in \textbf{InvertedIndex.java}.
   to have all the ComparableWritable properties that Hadoop's MapReduce needs (more details below).
   The posting list returned by the mapper is just a map containing one element
   which is a (key, value) pair of the form (filename, 1).
-  \lstinputlisting[firstnumber=87, firstline=87, lastline=116, language=java]{assets/InvertedIndex.java}
+  \lstinputlisting[firstnumber=87, firstline=87, lastline=116, language=java]{assets/code/InvertedIndex.java}
 
   \item \textbf{Reducer:}\\
   Our reducer reduces all the posting lists it receives and also counts the number
   of occurences of each word for the following frequency part (more details below).
-  \lstinputlisting[firstnumber=124, firstline=124, lastline=147, language=java]{assets/InvertedIndex.java}
+  \lstinputlisting[firstnumber=124, firstline=124, lastline=147, language=java]{assets/code/InvertedIndex.java}
 \end{itemize}
 
 \subsection{(10) How many unique words exist in the document corpus (excluding stop words)?
@@ -280,9 +280,9 @@ The counter that counts the unique words in the documents is \textbf{TaskCounter
 This counter counts the number of keys which is exactly the number of unique words.
 
 In order to count the words appearing in a single document only, we implement the following counter:
-\lstinputlisting[firstnumber=31, firstline=31, lastline=33, language=java]{assets/InvertedIndex.java}
+\lstinputlisting[firstnumber=31, firstline=31, lastline=33, language=java]{assets/code/InvertedIndex.java}
 Which is incremented in the reducer's reduce function:
-\lstinputlisting[firstnumber=160, firstline=160, lastline=166, language=java]{assets/InvertedIndex.java}
+\lstinputlisting[firstnumber=160, firstline=160, lastline=166, language=java]{assets/code/InvertedIndex.java}
 
 The counter gives us a count \textbf{36343 words appearing in a single document only}
 which seems pretty high given the number of total unique words 56491
@@ -293,7 +293,7 @@ This file is roughly 300.000 lines long, which is about three times longer than 
 This might explained why it contains a lot more vocabulary specific than the rest.
 
 The counter value is stored in a file in HDFS:
-\lstinputlisting[firstnumber=220, firstline=220, lastline=227, language=java]{assets/InvertedIndex.java}
+\lstinputlisting[firstnumber=220, firstline=220, lastline=227, language=java]{assets/code/InvertedIndex.java}
 
 \subsection{(30) Extend the inverted index of (b), in order to keep the frequency of each word for
 each document. You are required to use a Combiner.}
@@ -303,16 +303,16 @@ each document. You are required to use a Combiner.}
   all the ComparableWritable properties that hadoop needs and to be able to use a
   combiner along with a reducer without losing the word frequencies during the transfer.
   The custom class allows pretty printing a MapWritable instance to a file.
-  \lstinputlisting[firstnumber=36, firstline=36, lastline=49, language=java]{assets/InvertedIndex.java}
+  \lstinputlisting[firstnumber=36, firstline=36, lastline=49, language=java]{assets/code/InvertedIndex.java}
   \item \textbf{Combiner:}\\
   Different posting lists coming from different mappers or combiners can be reduced
   into a single one using the reduce function of the combiner.
-  \lstinputlisting[firstnumber=119, firstline=119, lastline=147, language=java]{assets/InvertedIndex.java}
+  \lstinputlisting[firstnumber=119, firstline=119, lastline=147, language=java]{assets/code/InvertedIndex.java}
   \item \textbf{Reducer:}\\
   The reducer shares the reduce function (it is a child of the combiner) with the combiner with the only exception
   that it will increment the counter for words in unique documents (which should only occur
   once per key and therefore only in the reducer).
-  \lstinputlisting[firstnumber=150, firstline=150, lastline=168, language=java]{assets/InvertedIndex.java}
+  \lstinputlisting[firstnumber=150, firstline=150, lastline=168, language=java]{assets/code/InvertedIndex.java}
 \end{itemize}
 
 \end{document}
