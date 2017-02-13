@@ -20,12 +20,13 @@ import org.apache.hadoop.mapreduce.Counters;
 import org.apache.hadoop.mapreduce.Counter;
 import org.apache.hadoop.mapreduce.TaskCounter;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FSDataOutputStream;
 
 
 public class InvertedIndex {
 
   public static enum WordCounter {
-    WORD_IN_UNIQUE_FILE
+    WORDS_IN_UNIQUE_FILE
   };
 
   public static HashSet<String> readStopWords() {
@@ -120,7 +121,7 @@ public class InvertedIndex {
         // key all go to the same reduce call.
         // CAREFUL: This assumption is not valid anymore if using this class as
         // a combiner too, the counter will not work.
-        context.getCounter(WordCounter.WORD_IN_UNIQUE_FILE).increment(1);
+        context.getCounter(WordCounter.WORDS_IN_UNIQUE_FILE).increment(1);
       }
 
     }
@@ -171,8 +172,19 @@ public class InvertedIndex {
       Counters counters = job.getCounters();
       Counter uniqueKeysCounter = counters.findCounter(TaskCounter.REDUCE_INPUT_GROUPS);
       System.out.println("Unique words: " + uniqueKeysCounter.getValue());
-      Counter wordInUniqueFileCounter = counters.findCounter(WordCounter.WORD_IN_UNIQUE_FILE);
-      System.out.println(wordInUniqueFileCounter.getDisplayName() + ": " + wordInUniqueFileCounter.getValue());
+      Counter wordInUniqueFileCounter = counters.findCounter(WordCounter.WORDS_IN_UNIQUE_FILE);
+      String message = wordInUniqueFileCounter.getDisplayName() + ": " + wordInUniqueFileCounter.getValue();
+      System.out.println(message);
+
+      // Write these unique words to a file in HDFS
+      Path filePath = new Path("words_in_unique_file.txt");
+      if (hdfs.exists(filePath)) {
+          hdfs.delete(filePath, true);
+      }
+
+      FSDataOutputStream fin = hdfs.create(filePath);
+      fin.writeUTF(message);
+      fin.close();
       System.exit(0);
     }
     else {
