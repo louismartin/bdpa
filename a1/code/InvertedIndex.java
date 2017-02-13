@@ -1,6 +1,7 @@
 import java.io.IOException;
 import java.util.StringTokenizer;
 import java.util.HashSet;
+import java.util.HashMap;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -99,22 +100,30 @@ public class InvertedIndex {
                        Context context
                        ) throws IOException, InterruptedException {
 
-      HashSet<Text> processedValues = new HashSet<Text>();
-      String postingList = new String();
-      int postingListSize = 0;
+      // First we are going to count each time each value appears.
+      // The HashMap uses String as keys because Text does not seem to be a hashable type,
+      HashMap<String, Integer> counter = new HashMap<String, Integer>();
       for (Text val : values) {
-        // We only want unique values
-        if (!processedValues.contains(val)) {
-          postingList += val + ", ";
-          processedValues.add(val);
+        if (counter.containsKey(val.toString())) {
+          int oldValue = counter.get(val.toString());
+          counter.put(val.toString(), oldValue + 1);
+        } else {
+          counter.put(val.toString(), 1);
         }
+      }
+
+      // Let's write the unique values and their frequency in a posting list
+      // that is represented by a string (easiest).
+      String postingList = new String();
+      for (HashMap.Entry<String, Integer> entry : counter.entrySet()) {
+        postingList += entry.getKey() + "#" + entry.getValue() + ", ";
       }
       // Remove last comma and space of string
       postingList = postingList.substring(0, postingList.length()-2);
       result.set(postingList);
       context.write(key, result);
 
-      if (processedValues.size() == 1) {
+      if (counter.size() == 1) {
         // Increment counter for word appearing in a single document only.
         // We are guaranteed that this is the only moment that the counter will
         // be incremented for this word because all all the values from a given
@@ -123,7 +132,6 @@ public class InvertedIndex {
         // a combiner too, the counter will not work.
         context.getCounter(WordCounter.WORDS_IN_UNIQUE_FILE).increment(1);
       }
-
     }
   }
 
@@ -138,7 +146,7 @@ public class InvertedIndex {
     }
 
     // Set separator to write as a csv file
-    conf.set("mapred.textoutputformat.separator", ": ");
+    conf.set("mapred.textoutputformat.separator", " : ");
     // Set compression
     if ((args.length >= 5) && (Integer.parseInt(args[4]) == 1)) {
         conf.set("mapreduce.map.output.compress", "true");
