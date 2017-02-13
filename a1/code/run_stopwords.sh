@@ -8,14 +8,14 @@
 hadoop jar StopWords.jar StopWords data/corpus/ out 10 0 0;
 hdfs dfs -getmerge out stopwords.csv;
 
-# 10 reducers, 1 combiner
+# 10 reducers, combiner
 hadoop jar StopWords.jar StopWords data/corpus/ out 10 1 0;
 hdfs dfs -getmerge out stopwords.csv;
 
-# 10 reducers, 1 combiner, compression
+# 10 reducers, combiner, compression
 hadoop jar StopWords.jar StopWords data/corpus/ out 10 1 1;
 hdfs dfs -getmerge out stopwords.csv;
 
-# 50 reducers, 1 combiner, compression
+# 50 reducers, combiner, compression
 hadoop jar StopWords.jar StopWords data/corpus/ out 50 1 1;
 hdfs dfs -getmerge out stopwords.csv;

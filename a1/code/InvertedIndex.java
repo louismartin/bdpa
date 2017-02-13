@@ -29,12 +29,13 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 public class InvertedIndex {
 
   public static enum WordCounter {
-    WORDS_IN_UNIQUE_FILE
+    WORDS_IN_UNIQUE_DOC
   };
 
-  // Creates a custom class that overrides the toString method to pretty print
-  // the posting list
+
   public static class PostingListWritable extends MapWritable {
+    // Creates a custom class that overrides the toString method to pretty
+    // print the posting list
     @Override
     public String toString() {
       String stringRepr = new String();
@@ -46,6 +47,7 @@ public class InvertedIndex {
       return stringRepr;
     }
   }
+
 
   public static HashSet<String> readStopWords() {
       // Read stopwords into a HashSet for fast membership testing
@@ -81,6 +83,7 @@ public class InvertedIndex {
       return stopWords;
   }
 
+
   public static class TokenizerMapper
        extends Mapper<Object, Text, Text, PostingListWritable>{
     private Text word = new Text();
@@ -112,9 +115,11 @@ public class InvertedIndex {
     }
   }
 
-  public static class PostingListReducer
+
+  public static class PostingListCombiner
        extends Reducer<Text, PostingListWritable, Text, PostingListWritable> {
     private PostingListWritable postingList = new PostingListWritable();
+    protected boolean isLastWordInUniqueDoc = false;
 
     public void reduce(Text word, Iterable<PostingListWritable> postingLists,
                        Context context
@@ -136,19 +141,32 @@ public class InvertedIndex {
         }
       }
 
+      isLastWordInUniqueDoc = (postingList.size() == 1);
       context.write(word, postingList);
-
-      if (postingList.size() == 1) {
-        // Increment counter for word appearing in a single document only.
-        // We are guaranteed that this is the only moment that the counter will
-        // be incremented for this word because all all the values from a given
-        // key all go to the same reduce call.
-        // CAREFUL: This assumption is not valid anymore if using this class as
-        // a combiner too, the counter will not work.
-        context.getCounter(WordCounter.WORDS_IN_UNIQUE_FILE).increment(1);
-      }
     }
   }
+
+
+  public static class PostingListReducer
+       extends PostingListCombiner {
+    // The only thing different between the reducer and the combiner is the
+    // counter incrementation. It must be incremented only once per key, hence in
+    // the reducer.
+    @Override
+    public void reduce(Text word, Iterable<PostingListWritable> postingLists,
+                       Context context
+                       ) throws IOException, InterruptedException {
+         super.reduce(word, postingLists, context);
+         if (isLastWordInUniqueDoc) {
+           // Increment counter for word appearing in a single document only
+           // We are guaranteed that this is the only time that the counter
+           // will be incremented for this word because all the values from
+           // a given key all go to the same reduce call.
+           context.getCounter(WordCounter.WORDS_IN_UNIQUE_DOC).increment(1);
+         }
+       }
+     }
+
 
   public static void main(String[] args) throws Exception {
     Configuration conf = new Configuration();
@@ -175,7 +193,7 @@ public class InvertedIndex {
         job.setNumReduceTasks(Integer.parseInt(args[2]));
     }
     if ((args.length >= 4) && (Integer.parseInt(args[3]) == 1)) {
-        job.setCombinerClass(PostingListReducer.class);
+        job.setCombinerClass(PostingListCombiner.class);
     }
     job.setMapperClass(TokenizerMapper.class);
     job.setReducerClass(PostingListReducer.class);
@@ -195,19 +213,19 @@ public class InvertedIndex {
       Counters counters = job.getCounters();
       Counter uniqueKeysCounter = counters.findCounter(TaskCounter.REDUCE_INPUT_GROUPS);
       System.out.println("Unique words: " + uniqueKeysCounter.getValue());
-      Counter wordInUniqueFileCounter = counters.findCounter(WordCounter.WORDS_IN_UNIQUE_FILE);
+      Counter wordInUniqueFileCounter = counters.findCounter(WordCounter.WORDS_IN_UNIQUE_DOC);
       String message = wordInUniqueFileCounter.getDisplayName() + ": " + wordInUniqueFileCounter.getValue();
       System.out.println(message);
 
-      // Write these unique words to a file in HDFS
+      // Write the count of unique words to a file in HDFS
       Path filePath = new Path("words_in_unique_file.txt");
       if (hdfs.exists(filePath)) {
           hdfs.delete(filePath, true);
       }
-
       FSDataOutputStream fin = hdfs.create(filePath);
       fin.writeUTF(message);
       fin.close();
+
       System.exit(0);
     }
     else {
