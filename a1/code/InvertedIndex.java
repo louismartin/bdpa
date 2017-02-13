@@ -9,8 +9,10 @@ import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.MapWritable;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
@@ -29,6 +31,21 @@ public class InvertedIndex {
   public static enum WordCounter {
     WORDS_IN_UNIQUE_FILE
   };
+
+  // Creates a custom class that overrides the toString method to pretty print
+  // the posting list
+  public static class PostingListWritable extends MapWritable {
+    @Override
+    public String toString() {
+      String stringRepr = new String();
+      for (PostingListWritable.Entry<Writable, Writable> entry : this.entrySet()) {
+        stringRepr += entry.getKey() + "#" + entry.getValue() + ", ";
+      }
+      // Remove last comma and space of string
+      stringRepr = stringRepr.substring(0, stringRepr.length()-2);
+      return stringRepr;
+    }
+  }
 
   public static HashSet<String> readStopWords() {
       // Read stopwords into a HashSet for fast membership testing
@@ -65,18 +82,18 @@ public class InvertedIndex {
   }
 
   public static class TokenizerMapper
-       extends Mapper<Object, Text, Text, Text>{
+       extends Mapper<Object, Text, Text, PostingListWritable>{
     private Text word = new Text();
-    private Text file = new Text();
+    private Text doc = new Text();
+    private IntWritable one = new IntWritable(1);
+    private PostingListWritable postingList = new PostingListWritable();
+    private HashSet<String> stopWords = InvertedIndex.readStopWords();
 
     public void map(Object key, Text value, Context context
                     ) throws IOException, InterruptedException {
-      // Get the filename (taken from stackoverflow)
       FileSplit fileSplit = (FileSplit) context.getInputSplit();
       String filename = fileSplit.getPath().getName();
-      file.set(filename);
-      // Get stop words
-      HashSet<String> stopWords = InvertedIndex.readStopWords();
+      doc.set(filename);
 
       // Splits a string to tokens (here words)
       StringTokenizer itr = new StringTokenizer(value.toString(), " .,?!\"'()[]$*-_;:|");
@@ -85,45 +102,43 @@ public class InvertedIndex {
         token = itr.nextToken().toLowerCase().trim();
         if (!stopWords.contains(token)) {
           word.set(token);
+          // Output is a PostingListWritable containing the filename and the value 1
+          postingList.clear();
+          postingList.put(doc, one);
           // Write one (key, value) pair to context
-          context.write(word, file);
+          context.write(word, postingList);
         }
       }
     }
   }
 
   public static class PostingListReducer
-       extends Reducer<Text, Text, Text, Text> {
-    private Text result = new Text();
+       extends Reducer<Text, PostingListWritable, Text, PostingListWritable> {
+    private PostingListWritable postingList = new PostingListWritable();
 
-    public void reduce(Text key, Iterable<Text> values,
+    public void reduce(Text word, Iterable<PostingListWritable> postingLists,
                        Context context
                        ) throws IOException, InterruptedException {
-
-      // First we are going to count each time each value appears.
-      // The HashMap uses String as keys because Text does not seem to be a hashable type,
-      HashMap<String, Integer> counter = new HashMap<String, Integer>();
-      for (Text val : values) {
-        if (counter.containsKey(val.toString())) {
-          int oldValue = counter.get(val.toString());
-          counter.put(val.toString(), oldValue + 1);
-        } else {
-          counter.put(val.toString(), 1);
+      // We are going to aggregate all posting lists together
+      postingList.clear();
+      // Iterate through all posting lists comming from the mappers or the combiners
+      for (PostingListWritable mw : postingLists) {
+        // Iterate through the entries of one given posting list
+        for (PostingListWritable.Entry<Writable, Writable> entry : mw.entrySet()) {
+          Text doc = (Text) entry.getKey();
+          IntWritable newValue = (IntWritable) entry.getValue();
+          if (postingList.containsKey(doc)) {
+            IntWritable oldValue = (IntWritable) postingList.get(doc);
+            postingList.put(doc, new IntWritable(oldValue.get() + newValue.get()));
+          } else {
+            postingList.put(doc, new IntWritable(newValue.get()));
+          }
         }
       }
 
-      // Let's write the unique values and their frequency in a posting list
-      // that is represented by a string (easiest).
-      String postingList = new String();
-      for (HashMap.Entry<String, Integer> entry : counter.entrySet()) {
-        postingList += entry.getKey() + "#" + entry.getValue() + ", ";
-      }
-      // Remove last comma and space of string
-      postingList = postingList.substring(0, postingList.length()-2);
-      result.set(postingList);
-      context.write(key, result);
+      context.write(word, postingList);
 
-      if (counter.size() == 1) {
+      if (postingList.size() == 1) {
         // Increment counter for word appearing in a single document only.
         // We are guaranteed that this is the only moment that the counter will
         // be incremented for this word because all all the values from a given
@@ -152,7 +167,7 @@ public class InvertedIndex {
         conf.set("mapreduce.map.output.compress", "true");
     }
 
-    Job job = Job.getInstance(conf, "stop words");
+    Job job = Job.getInstance(conf, "Inverted Index");
     job.setJarByClass(InvertedIndex.class);
 
     // Set number of reducers and combiner through cli
@@ -166,7 +181,7 @@ public class InvertedIndex {
     job.setReducerClass(PostingListReducer.class);
 
     job.setOutputKeyClass(Text.class);
-    job.setOutputValueClass(Text.class);
+    job.setOutputValueClass(PostingListWritable.class);
     FileInputFormat.addInputPath(job, new Path(args[0]));
     FileOutputFormat.setOutputPath(job, new Path(args[1]));
     long startTime = System.nanoTime();
