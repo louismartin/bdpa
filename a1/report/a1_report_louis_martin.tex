@@ -195,7 +195,11 @@ i.e. it retrieves the words with wordcount greater than 4000.
   This script executes the StopWords MapReduce task with different parameters
   and merges all the outputs into a csv file in HDFS.
   \lstinputlisting[language=bash]{assets/code/run_stopwords.sh}
+  \item \textbf{Results}:
+  Here is an extract of the output csv:
+  \lstinputlisting[firstnumber=10, firstline=10, lastline=20]{assets/code/stopwords.csv}
 \end{itemize}
+
 
 \subsubsection{(10) Use 10 reducers and do not use a combiner. Report the execution time.}
 The running time with 10 reducers is \textbf{126 seconds}.
@@ -313,32 +317,18 @@ each document. You are required to use a Combiner.}
   that it will increment the counter for words in unique documents (which should only occur
   once per key and therefore only in the reducer).
   \lstinputlisting[firstnumber=150, firstline=150, lastline=168, language=java]{assets/code/InvertedIndex.java}
+  \item \textbf{Results}:
+  Here is an extract of the output inverted index csv:
+  \lstinputlisting[firstnumber=1741, firstline=1741, lastline=1756]{assets/code/invertedindex.csv}
 \end{itemize}
 
+\section{Conclusion}
+
+Inverted indexes are widely used for text retrieval or for search engines for the
+performance gain they provide.
+Creating an inverted index can however be a computing power intensive task but
+it can be highly parallelized.
+Hadoop's MapReduce framework is a perfect candidate for parallelizing this kind
+of task on a highly distributed cluster with no centralized data.
+
 \end{document}
-
-Dear all,
-
-for the next assignments you are expected to provide on due date the your source code and a report of 10-20 pages.
-
-Regarding the source code, it should be put on a Git repository, one per person. Please send to Pr. Christophides and me as soon as possible your URL to your Git repositories. You can either use github.com, bitbucket.org. If you intend to use GitLab, please consider using Central's GitLab in priority (https://gitlab.my.ecp.fr/users/sign_in). Whatever the Git repo, we must have access to your commit tree.
-
-Regarding the report, here are some indication about what we would expect:
-
- 1 - a quick walkthrough on your Hadoop setup (use hadoop version|checknative -a|dfsadmin) with the virtual machine specs (#core, #ram, HDD ...). Explain why you changed the defaults.
-
- 2 - explanations on your implementations in particular the mapper/reducer codes and any data types extension you may make
-
- 3 - an explanation on the data set including any assumptions or simplifications you made  to generate/process the data
-
- 4 - the test scenario and the results for each one of them (including screenshots of the resource manager and the job tracker proving your run times)
-
- 5 - conclusion
-
-
-If you have any questions, please feel free to ask me by email.
-But please, be concise, include relevant screenshots and error messages.
-And last but not least KISS, DRY and YAGNI.
-
-Regards,
-Julien
