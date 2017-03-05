@@ -1,0 +1,56 @@
+\documentclass[a4paper,10pt]{article}
+
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{graphicx}       % include graphics
+\usepackage{subcaption}     % subfigures
+\usepackage{float}          % placement of floats
+\usepackage{fancyhdr}       % head notes and foot notes
+\usepackage{bbm}            % Nice symbols
+\usepackage{mathtools}      % Math tools like operators
+\usepackage{listings}       % Write code in a listing
+\usepackage[left=2cm,right=2cm,top=3cm,bottom=3cm]{geometry}
+
+\graphicspath{ {assets/} }
+
+% Operators
+\DeclarePairedDelimiter\abs{\lvert}{\rvert} % abs
+\DeclarePairedDelimiter\norm{\lVert}{\rVert} % norm
+\DeclareMathOperator*{\argmax}{arg\,max} % argmax
+\newcommand{\p}{\mathbbm{P}} % Big P for probabilties
+\newcommand{\pd}[2]{\frac{\partial #1}{\partial #2}}  % Partial derivative
+
+% To prevent the tilde from being printing above with lstlisting
+\lstset{
+    literate={~} {$\sim$}{1},
+    showstringspaces=false,
+    numbers=left,
+    breaklines=true
+}
+
+% Sections naming conventions
+\renewcommand{\thesection}{\arabic{section}}
+\renewcommand{\thesubsection}{(\alph{subsection})}
+\renewcommand{\thesubsubsection}{\roman{subsubsection}.}
+
+% Head and foot notes
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Louis MARTIN}
+\rhead{Big Data Processing and Analytics: Assignment 2}
+\rfoot{Page \thepage}
+
+\begin{document}
+
+\title{Big Data Processing and Analytics: Assignment 2}
+\author{Louis MARTIN\\
+\href{mailto:louis.martin@student.ecp.fr}{\tt louis.martin@student.ecp.fr}}
+
+\maketitle
+
+\end{document}
