@@ -1,7 +1,5 @@
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.HashMap;
-import java.util.Iterator;
+import java.util.*;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -61,11 +59,18 @@ public class Preprocess {
       return wordCounts;
   }
 
-
   public static class LineCleanerMapper
        extends Mapper<LongWritable, Text, LongWritable, Text>{
     private Text line = new Text();
     private HashMap<String, Integer> wordCounts = Preprocess.readWordCounts();
+
+    private class CountComparator implements Comparator<String> {
+        // Custom comparator that will sort words based on their count
+        @Override
+        public int compare(String word1, String word2) {
+            return wordCounts.get(word1).compareTo(wordCounts.get(word2));
+        }
+    }
 
     public void map(LongWritable key, Text value, Context context
                     ) throws IOException, InterruptedException {
@@ -74,20 +79,21 @@ public class Preprocess {
       // We split on anything that is not an alphanumerical character
       String[] words = value.toString().toLowerCase().split("[^a-z0-9]");
       // We use the "no duplicate" property of sets
-      HashSet<String> uniqueWords = new HashSet<String>();
+      HashSet<String> wordSet = new HashSet<String>();
       for (String word : words) {
         // Take only words that are not stopwords
         if (wordCounts.get(word) < 4000){
-          uniqueWords.add(word);
+          wordSet.add(word);
         }
       }
 
-      // TODO: Sort the words with their values in wordCounts
-      // Not hard, just need to find an elegant solution
-      Iterator<String> it = uniqueWords.iterator();
+      // Convert the words back to an array of strings
+      String[] uniqueWords = wordSet.toArray(new String[wordSet.size()]);
+      Arrays.sort(uniqueWords, new CountComparator());
+
       String cleanLine = new String();
-      while(it.hasNext()){
-        cleanLine += it.next() + " ";
+      for (int i=0; i<uniqueWords.length; i++){
+        cleanLine += uniqueWords[i] + " ";
       }
       cleanLine = cleanLine.trim();
       // Keep only lines that are not empty
