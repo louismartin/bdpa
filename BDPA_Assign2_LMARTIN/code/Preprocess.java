@@ -74,7 +74,6 @@ public class Preprocess {
 
     public void map(LongWritable key, Text value, Context context
                     ) throws IOException, InterruptedException {
-      FileSplit fileSplit = (FileSplit) context.getInputSplit();
       // Splits a string to tokens (here words).
       // We split on anything that is not an alphanumerical character
       String[] words = value.toString().toLowerCase().split("[^a-z0-9]");
