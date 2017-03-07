@@ -9,6 +9,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
@@ -60,8 +61,9 @@ public class Preprocess {
   }
 
   public static class LineCleanerMapper
-       extends Mapper<LongWritable, Text, LongWritable, Text>{
+       extends Mapper<LongWritable, Text, NullWritable, Text>{
     private Text line = new Text();
+    private NullWritable nullKey = NullWritable.get();  // To prevent having a key in the output
     private HashMap<String, Integer> wordCounts = Preprocess.readWordCounts();
 
     private class CountComparator implements Comparator<String> {
@@ -99,7 +101,7 @@ public class Preprocess {
       if (cleanLine.length() > 0){
         line.set(cleanLine.trim());
         // The key is the file byte offset which uniquely identifies a line
-        context.write(key, line);
+        context.write(nullKey, line);
       }
       }
     }
@@ -125,7 +127,7 @@ public class Preprocess {
     job.setNumReduceTasks(0);
     job.setMapperClass(LineCleanerMapper.class);
 
-    job.setOutputKeyClass(LongWritable.class);
+    job.setOutputKeyClass(NullWritable.class);
     job.setOutputValueClass(Text.class);
     FileInputFormat.addInputPath(job, new Path(args[0]));
     FileOutputFormat.setOutputPath(job, new Path(args[1]));
