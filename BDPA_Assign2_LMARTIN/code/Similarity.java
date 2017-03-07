@@ -27,6 +27,8 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 
 
 public class Similarity {
+
+  // NOT USED, COULD NOT MAKE IT WORK
   public static class LongArrayWritable extends ArrayWritable implements Comparable<LongArrayWritable> {
       // For storing pair of keys
       public LongArrayWritable(LongWritable[] values) {
@@ -65,19 +67,17 @@ public class Similarity {
 
 
   public static class PairMapper
-       extends Mapper<LongWritable, Text, LongArrayWritable, Text>{
+       extends Mapper<LongWritable, Text, Text, Text>{
 
     private static ArrayList<LongWritable> previousIds = new ArrayList<LongWritable>();
-
+    private Text pair = new Text();
     public void map(LongWritable key, Text value, Context context
                     ) throws IOException, InterruptedException {
-      System.out.println("***************");
-      System.out.println(key);
       for (LongWritable previousId : previousIds){
-        LongWritable[] pairList = {previousId, key};
-        LongArrayWritable pair = new LongArrayWritable(pairList);
-        System.out.println("----");
-        System.out.println(pair);
+        // Dirty hack to pass a pair of keys, bypasses the definition of a new
+        // ComparableWritable class which I could not successfully implement
+        // in reasonable time.
+        pair.set(key.toString() + "\t" + previousId.toString());
         context.write(pair, value);
       }
       // We need to create a new object else we would save a list of pointers to the same object
@@ -87,8 +87,8 @@ public class Similarity {
     }
 
   public static class CompareReducer
-       extends Reducer<LongArrayWritable, Text, LongArrayWritable, Text> {
-    public void reduce(LongArrayWritable key, Iterable<Text> values,
+       extends Reducer<Text, Text, Text, Text> {
+    public void reduce(Text key, Iterable<Text> values,
                        Context context
                        ) throws IOException, InterruptedException {
 
@@ -116,7 +116,7 @@ public class Similarity {
 
     job.setMapperClass(PairMapper.class);
     job.setReducerClass(CompareReducer.class);
-    job.setOutputKeyClass(LongArrayWritable.class);
+    job.setOutputKeyClass(Text.class);
     job.setOutputValueClass(Text.class);
     FileInputFormat.addInputPath(job, new Path(args[0]));
     FileOutputFormat.setOutputPath(job, new Path(args[1]));
