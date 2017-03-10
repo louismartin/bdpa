@@ -98,6 +98,17 @@ public class Similarity {
       return keys;
   }
 
+  public static float jaccard(String doc1, String doc2){
+    Set words1 = new HashSet<String>(Arrays.asList(doc1.split(" ")));
+    Set words2 = new HashSet<String>(Arrays.asList(doc2.split(" ")));
+    Set intersection = new HashSet<String>(words1);
+    intersection.retainAll(words2);
+    Set union = new HashSet<String>(words1);
+    union.addAll(words2);
+    float similarity = (float) intersection.size() / (float) union.size();
+    return similarity;
+  }
+
   public static class PairMapper
        extends Mapper<LongWritable, Text, Text, Text>{
 
@@ -146,8 +157,11 @@ public class Similarity {
       if (itr.hasNext()){
         throw new RuntimeException("More than one value for a given pair of document ids was received.");
       }
-      Text value = new Text(value1.toString() + "\t" + value2.toString());
-      context.write(key, value);
+      float similarity = Similarity.jaccard(value1.toString(), value2.toString());
+      if (similarity > 0.3) {
+        Text value = new Text(similarity + "\t\"" + value1.toString() + "\" - \"" + value2.toString() + "\"");
+        context.write(key, value);
+      }
     }
   }
 
