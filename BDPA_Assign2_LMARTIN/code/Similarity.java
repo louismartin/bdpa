@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.lang.Comparable;
+import java.lang.RuntimeException;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -28,7 +29,7 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 
 public class Similarity {
 
-  // NOT USED, COULD NOT MAKE IT WORK
+  // NOT USED, COULD NOT MAKE IT WORK IN TIME (problem with Comparable)
   public static class LongArrayWritable extends ArrayWritable implements Comparable<LongArrayWritable> {
       // For storing pair of keys
       public LongArrayWritable(LongWritable[] values) {
@@ -65,36 +66,88 @@ public class Similarity {
 
   }
 
+  public static ArrayList<Long> readAllKeys() {
+      ArrayList<Long> keys = new ArrayList<Long>();
+
+      // Read csv file: inspired from https://www.mkyong.com/java/how-to-read-and-parse-csv-file-in-java/
+      String csvFile = "preprocess.csv";
+      BufferedReader br = null;
+      String line = "";
+      String cvsSplitBy = ",";
+
+      try {
+          br = new BufferedReader(new FileReader(csvFile));
+          while ((line = br.readLine()) != null) {
+              // use comma as separator
+              String[] splittedLine = line.split(cvsSplitBy);
+              keys.add(Long.parseLong(splittedLine[0]));
+          }
+      } catch (FileNotFoundException e) {
+          e.printStackTrace();
+      } catch (IOException e) {
+          e.printStackTrace();
+      } finally {
+          if (br != null) {
+              try {
+                  br.close();
+              } catch (IOException e) {
+                  e.printStackTrace();
+              }
+          }
+      }
+      return keys;
+  }
 
   public static class PairMapper
        extends Mapper<LongWritable, Text, Text, Text>{
 
-    private static ArrayList<LongWritable> previousIds = new ArrayList<LongWritable>();
+    private static ArrayList<Long> keys = Similarity.readAllKeys();
     private Text pair = new Text();
+    private Text currentValue = new Text();
+
     public void map(LongWritable key, Text value, Context context
                     ) throws IOException, InterruptedException {
-      for (LongWritable previousId : previousIds){
-        // Dirty hack to pass a pair of keys, bypasses the definition of a new
-        // ComparableWritable class which I could not successfully implement
-        // in reasonable time.
-        pair.set(key.toString() + "\t" + previousId.toString());
-        context.write(pair, value);
+      String[] split = value.toString().split(",");
+      Long currentKey = Long.parseLong(split[0]);
+      currentValue.set(split[1]);
+      // We will compare this document to only previous documents in order to
+      // only compare a given pair of documents once.
+      for (Long otherKey : keys){
+        // The following pair is a quick hack to pass a pair of keys, instead
+        //  of defining a new ComparableWritable class which I could not
+        // successfully implement in reasonable time.
+        // We put the lowest key first to be sure that the same pair of
+        // documents always have the same key and thus end up in the same reducer.
+        // Note that we don't take into account the case where the keys are the same.
+        if (currentKey < otherKey){
+          pair.set(currentKey.toString() + "\t" + otherKey.toString());
+          context.write(pair, currentValue);
+        } else if (currentKey > otherKey) {
+          pair.set(otherKey.toString() + "\t" + currentKey.toString());
+          context.write(pair, currentValue);
+        }
       }
-      // We need to create a new object else we would save a list of pointers to the same object
-      LongWritable savedKey = new LongWritable(key.get());
-      previousIds.add(savedKey);
       }
     }
 
   public static class CompareReducer
        extends Reducer<Text, Text, Text, Text> {
+    private Text value1 = new Text();
+    private Text value2 = new Text();
+
     public void reduce(Text key, Iterable<Text> values,
                        Context context
                        ) throws IOException, InterruptedException {
-
-      for (Text value : values){
-        context.write(key, value);
+      // Values is supposed to contain two elements. The content of each of the
+      // two documents to be compared.
+      Iterator<Text> itr = values.iterator();
+      value1.set(itr.next());
+      value2.set(itr.next());
+      if (itr.hasNext()){
+        throw new RuntimeException("More than one value for a given pair of document ids was received.");
       }
+      Text value = new Text(value1.toString() + "\t" + value2.toString());
+      context.write(key, value);
     }
   }
 

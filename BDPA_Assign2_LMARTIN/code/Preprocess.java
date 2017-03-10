@@ -9,7 +9,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
@@ -32,7 +31,7 @@ public class Preprocess {
       HashMap<String, Integer> wordCounts = new HashMap<String, Integer>();
 
       // Read csv file: inspired from https://www.mkyong.com/java/how-to-read-and-parse-csv-file-in-java/
-      String csvFile = "WordCount.csv";
+      String csvFile = "wordcount.csv";
       BufferedReader br = null;
       String line = "";
       String cvsSplitBy = ",";
@@ -61,9 +60,8 @@ public class Preprocess {
   }
 
   public static class LineCleanerMapper
-       extends Mapper<LongWritable, Text, NullWritable, Text>{
+       extends Mapper<LongWritable, Text, LongWritable, Text>{
     private Text line = new Text();
-    private NullWritable nullKey = NullWritable.get();  // To prevent having a key in the output
     private HashMap<String, Integer> wordCounts = Preprocess.readWordCounts();
 
     private class CountComparator implements Comparator<String> {
@@ -101,7 +99,7 @@ public class Preprocess {
       if (cleanLine.length() > 0){
         line.set(cleanLine.trim());
         // The key is the file byte offset which uniquely identifies a line
-        context.write(nullKey, line);
+        context.write(key, line);
       }
       }
     }
@@ -118,7 +116,7 @@ public class Preprocess {
     }
 
     // Set separator to write as a csv file
-    conf.set("mapred.textoutputformat.separator", " : ");
+    conf.set("mapred.textoutputformat.separator", ",");
 
     Job job = Job.getInstance(conf, "Preprocessing");
     job.setJarByClass(Preprocess.class);
@@ -127,7 +125,7 @@ public class Preprocess {
     job.setNumReduceTasks(0);
     job.setMapperClass(LineCleanerMapper.class);
 
-    job.setOutputKeyClass(NullWritable.class);
+    job.setOutputKeyClass(LongWritable.class);
     job.setOutputValueClass(Text.class);
     FileInputFormat.addInputPath(job, new Path(args[0]));
     FileOutputFormat.setOutputPath(job, new Path(args[1]));
