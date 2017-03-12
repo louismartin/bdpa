@@ -27,7 +27,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FSDataOutputStream;
 
 
-public class Similarity {
+public class NaiveSimilarity {
 
   // NOT USED, COULD NOT MAKE IT WORK IN TIME (problem with Comparable)
   public static class LongArrayWritable extends ArrayWritable implements Comparable<LongArrayWritable> {
@@ -112,7 +112,7 @@ public class Similarity {
   public static class PairMapper
        extends Mapper<LongWritable, Text, Text, Text>{
 
-    private static ArrayList<Long> keys = Similarity.readAllKeys();
+    private static ArrayList<Long> keys = NaiveSimilarity.readAllKeys();
     private Text pair = new Text();
     private Text currentValue = new Text();
 
@@ -157,8 +157,8 @@ public class Similarity {
       if (itr.hasNext()){
         throw new RuntimeException("More than one value for a given pair of document ids was received.");
       }
-      float similarity = Similarity.jaccard(value1.toString(), value2.toString());
-      if (similarity > 0.3) {
+      float similarity = NaiveSimilarity.jaccard(value1.toString(), value2.toString());
+      if (similarity > 0.8) {
         Text value = new Text(similarity + "\t\"" + value1.toString() + "\" - \"" + value2.toString() + "\"");
         context.write(key, value);
       }
@@ -178,8 +178,8 @@ public class Similarity {
     // Set separator to write as a csv file
     conf.set("mapred.textoutputformat.separator", " : ");
 
-    Job job = Job.getInstance(conf, "Similarity");
-    job.setJarByClass(Similarity.class);
+    Job job = Job.getInstance(conf, "Naive Similarity");
+    job.setJarByClass(NaiveSimilarity.class);
 
     job.setMapperClass(PairMapper.class);
     job.setReducerClass(CompareReducer.class);
