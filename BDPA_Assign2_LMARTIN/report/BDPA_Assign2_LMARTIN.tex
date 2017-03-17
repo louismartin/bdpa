@@ -160,33 +160,33 @@ We will reuse these wordcounts for sorting the words.
 \subsubsection{Preprocess.java}
 We then preprocess the lines using the wordcounts.
 The preprocessing is done by a single map task (no reduce taks).
-\lstinputlisting[firstnumber=124, firstline=124, lastline=126]{assets/code/Preprocess.java}
+\lstinputlisting[firstnumber=124, firstline=124, lastline=126, language=java]{assets/code/Preprocess.java}
 \begin{itemize}
   \item \textbf{Clean the line}:\\
   We first clean the lines from characters other than alpha-numerical characters.
-  \lstinputlisting[firstnumber=77, firstline=77, lastline=79]{assets/code/Preprocess.java}
+  \lstinputlisting[firstnumber=77, firstline=77, lastline=79, language=java]{assets/code/Preprocess.java}
 
   \item \textbf{Keep each word once per line}:\\
-  \lstinputlisting[firstnumber=80, firstline=80, lastline=81]{assets/code/Preprocess.java}
+  \lstinputlisting[firstnumber=80, firstline=80, lastline=81, language=java]{assets/code/Preprocess.java}
 
   \item \textbf{Remove all stopwords}:\\
   A stopword is defined by a word with less than 4000 occurences.
   The wordcounts are stored in a hashmap for O(1) element retrieval.
-  \lstinputlisting[firstnumber=82, firstline=82, lastline=87]{assets/code/Preprocess.java}
+  \lstinputlisting[firstnumber=82, firstline=82, lastline=87, language=java]{assets/code/Preprocess.java}
 \end{itemize}
 
 \subsection{(1) Store on HDFS the number of output records (i.e., total lines).}
 As we implemented a map only job, the number of output records is given by the Counter
 \textbf{MAP\_OUTPUT\_RECORDS}. The number of output records is \textbf{114982}.
-\lstinputlisting[firstnumber=139, firstline=139, lastline=150]{assets/code/Preprocess.java}
+\lstinputlisting[firstnumber=139, firstline=139, lastline=150, language=java]{assets/code/Preprocess.java}
 
 \subsection{(7) Order the tokens of each line in ascending order of global frequency.}
 We need to sort the resulting words based on their respective count.
 With this aim in mind, we implemented a custom comparator to sort the array of words
 based on their counts that we previously stored in a HashMap:
-\lstinputlisting[firstnumber=67, firstline=67, lastline=73]{assets/code/Preprocess.java}
+\lstinputlisting[firstnumber=67, firstline=67, lastline=73, language=java]{assets/code/Preprocess.java}
 We then sort the words using this comparator:
-\lstinputlisting[firstnumber=91, firstline=91, lastline=91]{assets/code/Preprocess.java}
+\lstinputlisting[firstnumber=91, firstline=91, lastline=91, language=java]{assets/code/Preprocess.java}
 
 
 
@@ -201,6 +201,41 @@ In the reduce phase, perform the Jaccard computations for all/some selected pair
 Output only similar pairs on HDFS, in TextOutputFormat.
 Make sure that the same pair of documents is compared no more than once. Report
 the execution time and the number of performed comparisons.}
+\subsubsection{run\_naive\_similarity.sh}
+We wrapped the execution of the necessary jobs in the \textbf{run\_naive\_similarity.sh}.
+\lstinputlisting{assets/code/run_naive_similarity.sh}
+
+\subsubsection{NaiveSimilarity.java}
+\begin{itemize}
+  \item \textbf{Jaccard similarity}:\\
+  The jaccard similarity between two documents is the length of their intersection,
+  divided by their union.
+  \lstinputlisting[firstnumber=64, firstline=64, lastline=73, language=java]{assets/code/NaiveSimilarity.java}
+
+  \item \textbf{Mapper}:\\
+  We first read all keys in an array.
+  The mapper then reads each preprocessed lines. It then outputs a pair of the
+  key of the current line and another key for each other line in the corpus.
+  The value is the content of the line.
+
+  In order to retrieve the content of both documents, we need to make sure that
+  they will end up in the same reducer and hence have the same key.
+  We put the lowest key first for always having a single key.
+  This also ensures that each pair is compared only once.
+  More details in the comments:
+  \lstinputlisting[firstnumber=75, firstline=75, lastline=105, language=java]{assets/code/NaiveSimilarity.java}
+
+  \item \textbf{Reducer}:\\
+  Each reduce call is supposed to receive exactly two values, one for each document.
+  \lstinputlisting[firstnumber=107, firstline=107, lastline=129, language=java]{assets/code/NaiveSimilarity.java}
+\end{itemize}
+
+The number of comparison is simply the number of reduce calls given by the \textbf{REDUCE\_INPUT\_GROUPS} counter.
+The number of comparison is \textbf{6610372671} which is exactly $\frac{(n-1) n}{2}$ with $n$ being the number of documents.
+The first document is compared to $n-1$ documents, the second to $n-2$ documents.
+It is therefore equal to $\sum_{1}^{n-1} = \frac{(n-1) n}{2}$ (not that the upper bound is $n-1$).
+
+The execution time is \textbf{?????????????//}
 
 \subsection{(40) Create an inverted index, only for the first $|d| - ceil(t \times |d|) + 1$ words of each
 document d (remember that they are stored in ascending order of frequency). In your
@@ -208,6 +243,8 @@ reducer, compute the similarity of the document pairs. Output only similar pairs
 HDFS, in TextOutputFormat. Report the execution time and the number of performed
 comparisons.}
 
+
+Words in ascending order
 Each word is unique in each line -> second method no duplicates value pairs
 \subsection{(10) Explain and justify the difference between a) and b) in the number of performed
 comparisons, as well as their difference in execution time.}
