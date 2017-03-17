@@ -26,7 +26,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FSDataOutputStream;
 
 
-public class InvertedIndex {
+public class FastSimilarity {
   public static double threshold = 0.5;
 
 
@@ -113,7 +113,7 @@ public class InvertedIndex {
         for (LongWritable processedKey : processedKeys) {
           doc1 = allDocs.get(processedKey.get());
           doc2 = allDocs.get(docKey.get());
-          float similarity = InvertedIndex.jaccard(doc1, doc2);
+          float similarity = FastSimilarity.jaccard(doc1, doc2);
           if (similarity > threshold){
             outputKey.set("(" + processedKey.toString() + ", " + docKey.toString() + ")");
             outputValue.set(similarity + "\t\"" + doc1 + "\" - \"" + doc2 + "\"");
@@ -142,7 +142,7 @@ public class InvertedIndex {
     conf.set("mapred.textoutputformat.separator", " : ");
 
     Job job = Job.getInstance(conf, "Inverted Index");
-    job.setJarByClass(InvertedIndex.class);
+    job.setJarByClass(FastSimilarity.class);
 
     // Set number of reducers and combiner through cli
     job.setMapperClass(TokenizerMapper.class);
