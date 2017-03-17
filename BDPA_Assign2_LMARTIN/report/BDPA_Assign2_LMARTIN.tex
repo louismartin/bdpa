@@ -33,11 +33,6 @@
     breaklines=true
 }
 
-% Sections naming conventions
-\renewcommand{\thesection}{\arabic{section}}
-\renewcommand{\thesubsection}{(\alph{subsection})}
-\renewcommand{\thesubsubsection}{\roman{subsubsection}.}
-
 % Head and foot notes
 \pagestyle{fancy}
 \fancyhf{}
@@ -120,27 +115,80 @@ The following configuration files allows Hadoop and YARN to run in a pseudo-dist
     \end{lstlisting}
 \end{itemize}
 
+\subsection{Workflow}
+As I ran everythin from the command line interface, I created helper shell scripts
+in order to facilitate the compilation and execution of the mapreduce jobs.
+\begin{itemize}
+
+\item \textbf{compile.sh}:\\
+The $compile.sh$ script which takes as input parameter the name of the main
+class of the $.java$ file to compile it into a $.jar$ file.
+\\Usage: \lstinline{./compile.sh Preprocess}.
+\lstinputlisting[language=bash]{assets/code/compile.sh}
+\item \textbf{run.sh}:\\
+The compilation and execution of the mapreduce job is then wrapped into this script.
+It takes as input the main class and the input file or directory.
+\\Usage: \lstinline{./run.sh Preprocess data/corpus}.
+\lstinputlisting[language=bash]{assets/code/run.sh}
+
+
+\end{itemize}
+
 \section{Pre-processing the input (10)}
+
+The following preprocessing is done with a mapreduce job in \textbf{Preprocess.java}.
+Each line is read by a single map call, processed and the written to a file.
+The key we used to uniquely identify a line is its byte offset, which is natively
+provided in the map call.
+The value is the processed line.
+
 \subsection{(2) Remove all stopwords (you can use the stopwords file of your previous
 assignment), special characters (keep only [a-z],[A-Z] and [0-9]) and keep each unique
 word only once per line. Don’t keep empty lines.}
+\subsubsection{WordCount.java}
+In order to remove the stopwords we get the number of occurences of each word in
+the corpus and store it in wordcount.csv.
+We will reuse these wordcounts for sorting the words.
+\begin{itemize}
+  \item \textbf{WordCount.java} (inspired from the official documentation and the first assignment):
+  \lstinputlisting[firstnumber=18, firstline=18, lastline=51, language=java]{assets/code/WordCount.java}
+  \item Output \textbf{wordcount.csv}:\\
+  Here is an extract from the output
+  \lstinputlisting[firstnumber=1010, firstline=1010, lastline=1020]{assets/code/wordcount.csv}
+\end{itemize}
+
+\subsubsection{Preprocess.java}
+We then preprocess the lines using the wordcounts.
+The preprocessing is done by a single map task (no reduce taks).
+\lstinputlisting[firstnumber=124, firstline=124, lastline=126]{assets/code/Preprocess.java}
+\begin{itemize}
+  \item \textbf{Clean the line}:\\
+  We first clean the lines from characters other than alpha-numerical characters.
+  \lstinputlisting[firstnumber=77, firstline=77, lastline=79]{assets/code/Preprocess.java}
+
+  \item \textbf{Keep each word once per line}:\\
+  \lstinputlisting[firstnumber=80, firstline=80, lastline=81]{assets/code/Preprocess.java}
+
+  \item \textbf{Remove all stopwords}:\\
+  A stopword is defined by a word with less than 4000 occurences.
+  The wordcounts are stored in a hashmap for O(1) element retrieval.
+  \lstinputlisting[firstnumber=82, firstline=82, lastline=87]{assets/code/Preprocess.java}
+\end{itemize}
 
 \subsection{(1) Store on HDFS the number of output records (i.e., total lines).}
+As we implemented a map only job, the number of output records is given by the Counter
+\textbf{MAP\_OUTPUT\_RECORDS}. The number of output records is \textbf{114982}.
+\lstinputlisting[firstnumber=139, firstline=139, lastline=150]{assets/code/Preprocess.java}
 
 \subsection{(7) Order the tokens of each line in ascending order of global frequency.}
+We need to sort the resulting words based on their respective count.
+With this aim in mind, we implemented a custom comparator to sort the array of words
+based on their counts that we previously stored in a HashMap:
+\lstinputlisting[firstnumber=67, firstline=67, lastline=73]{assets/code/Preprocess.java}
+We then sort the words using this comparator:
+\lstinputlisting[firstnumber=91, firstline=91, lastline=91]{assets/code/Preprocess.java}
 
 
-Strategy:
-\begin{itemize}
-  \item WordCount\\
-    \subitem Get each word global count
-  \item Preprocessing\\
-    \subitem Remove special characters
-    \subitem Remove stopwords
-    \subitem Keep unique words per line
-    \subitem Ordering by global frequency using WordCount
-
-Each word is unique in each line -> second method no duplicates value pairs
 
 
 \section{Set-similarity joins (90)}
@@ -160,6 +208,7 @@ reducer, compute the similarity of the document pairs. Output only similar pairs
 HDFS, in TextOutputFormat. Report the execution time and the number of performed
 comparisons.}
 
+Each word is unique in each line -> second method no duplicates value pairs
 \subsection{(10) Explain and justify the difference between a) and b) in the number of performed
 comparisons, as well as their difference in execution time.}
 
