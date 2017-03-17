@@ -45,12 +45,123 @@
 \rhead{Big Data Processing and Analytics: Assignment 2}
 \rfoot{Page \thepage}
 
-\begin{document}
 
 \title{Big Data Processing and Analytics: Assignment 2}
 \author{Louis MARTIN\\
 \href{mailto:louis.martin@student.ecp.fr}{\tt louis.martin@student.ecp.fr}}
 
+
+\begin{document}
 \maketitle
 
+In this assignment we are going to compare documents using the Jaccard similarity.
+For the sake of simplicity we are going to run our algorithms on the works of
+William Shakespeare, each line being considered as a document.
+
+\section{Setup}
+This section is the same as for the first assignment.
+\subsection{System specifications}
+
+\begin{itemize}
+    \item \textbf{Operating system}:\\
+    Ubuntu 16.04 (Native)
+    \item \textbf{System specifications}:\\
+    Model: Dell Inspiron 17R 5720\\
+    Processor: i5-3210M\\
+    Cores: 2\\
+    Threads: 4\\
+    Ram: 8 GB\\
+    Storage: 256GB SSD (MLC)
+    \item \textbf{Java version}:\\
+    openjdk version "1.8.0\_121"\\
+    OpenJDK Runtime Environment (build 1.8.0\_121-8u121-b13-0ubuntu1.16.04.2-b13)\\
+    OpenJDK 64-Bit Server VM (build 25.121-b13, mixed mode)
+    \item \textbf{Haddop version}:\\
+    Hadoop 2.7.3\\
+    Subversion https://git-wip-us.apache.org/repos/asf/hadoop.git -r baa91f7c6bc9cb92be5982de4719c1c8af91ccff\\
+    Compiled by root on 2016-08-18T01:41Z\\
+    Compiled with protoc 2.5.0\\
+    From source with checksum 2e4ce5f957ea4db193bce3734ff29ff4\\
+    This command was run using /usr/local/hadoop/share/hadoop/common/hadoop-common-2.7.3.jar\\
+
+\end{itemize}
+
+Hadoop was installed using \href{https://www.digitalocean.com/community/tutorials/how-to-install-hadoop-in-stand-alone-mode-on-ubuntu-16-04}{this tutorial} and configured using \href{https://hadoop.apache.org/docs/stable/hadoop-project-dist/hadoop-common/SingleCluster.html}{this tutorial}.
+
+
+\subsection{Configuration}
+The configuration comes from the \href{https://hadoop.apache.org/docs/stable/hadoop-project-dist/hadoop-common/SingleCluster.html}{official documentation} for a single Hadoop node cluster.
+The following configuration files allows Hadoop and YARN to run in a pseudo-distributed mode.
+\begin{itemize}
+    \item \textbf{core-site.xml:}
+    \lstinputlisting[firstline=19, lastline=24, language=xml]{assets/hadoop_conf/core-site.xml}
+    \item \textbf{hdfs-site.xml:}
+    \lstinputlisting[firstline=19, lastline=24, language=xml]{assets/hadoop_conf/hdfs-site.xml}
+    \item \textbf{mapred-site.xml:}
+    \lstinputlisting[firstline=19, lastline=24, language=xml]{assets/hadoop_conf/mapred-site.xml}
+    \item \textbf{yarn-site.xml:}
+    \lstinputlisting[firstline=15, lastline=29, language=xml]{assets/hadoop_conf/yarn-site.xml}
+    \item \textbf{Commands to set up HDFS and YARN:}
+    \begin{lstlisting}[language=bash]
+      # Format the filesystem
+      hdfs namenode -format
+      # Start HDFS
+      start-dfs.sh
+
+      # Create directories to execute MapReduce jobs
+      hdfs dfs -mkdir /user
+      hdfs dfs -mkdir /user/louis
+
+      # Put the data in HDFS
+      hdfs dfs -put ~/dev/bdpa/a1/data data
+
+      # Start YARN Ressource manager
+      start-yarn.sh
+    \end{lstlisting}
+\end{itemize}
+
+\section{Pre-processing the input (10)}
+\subsection{(2) Remove all stopwords (you can use the stopwords file of your previous
+assignment), special characters (keep only [a-z],[A-Z] and [0-9]) and keep each unique
+word only once per line. Don’t keep empty lines.}
+
+\subsection{(1) Store on HDFS the number of output records (i.e., total lines).}
+
+\subsection{(7) Order the tokens of each line in ascending order of global frequency.}
+
+
+Strategy:
+\begin{itemize}
+  \item WordCount\\
+    \subitem Get each word global count
+  \item Preprocessing\\
+    \subitem Remove special characters
+    \subitem Remove stopwords
+    \subitem Keep unique words per line
+    \subitem Ordering by global frequency using WordCount
+
+Each word is unique in each line -> second method no duplicates value pairs
+
+
+\section{Set-similarity joins (90)}
+\subsection{(40) Perform all pair-wise comparisons between documents, using the following
+technique: Each document is handled by a single mapper (remember that lines are
+used to represent documents in this assignment). The map method should emit, for
+each document, the document id along with one other document id as a key (one such
+pair for each other document in the corpus) and the document’s content as a value.
+In the reduce phase, perform the Jaccard computations for all/some selected pairs.
+Output only similar pairs on HDFS, in TextOutputFormat.
+Make sure that the same pair of documents is compared no more than once. Report
+the execution time and the number of performed comparisons.}
+
+\subsection{(40) Create an inverted index, only for the first $|d| - ceil(t \times |d|) + 1$ words of each
+document d (remember that they are stored in ascending order of frequency). In your
+reducer, compute the similarity of the document pairs. Output only similar pairs on
+HDFS, in TextOutputFormat. Report the execution time and the number of performed
+comparisons.}
+
+\subsection{(10) Explain and justify the difference between a) and b) in the number of performed
+comparisons, as well as their difference in execution time.}
+
+\end{itemize}
 \end{document}
