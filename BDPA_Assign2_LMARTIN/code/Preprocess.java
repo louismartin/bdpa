@@ -135,6 +135,20 @@ public class Preprocess {
       float duration = (endTime - startTime);
       duration /= 1000000000;
       System.out.println("***** Elapsed: " + duration + "s *****\n");
+
+      // Retrieve number of lines
+      Counters counters = job.getCounters();
+      Counter linesCounter = counters.findCounter(TaskCounter.MAP_OUTPUT_RECORDS);
+      System.out.println("Lines written: " + linesCounter.getValue());
+      // Write the count of unique words to a file in HDFS
+      Path filePath = new Path("lines_preprocessed.txt");
+      if (hdfs.exists(filePath)) {
+          hdfs.delete(filePath, true);
+      }
+      FSDataOutputStream fin = hdfs.create(filePath);
+      fin.writeUTF(Long.toString(linesCounter.getValue()));
+      fin.close();
+
       System.exit(0);
     }
     else {

@@ -29,43 +29,6 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 
 public class NaiveSimilarity {
 
-  // NOT USED, COULD NOT MAKE IT WORK IN TIME (problem with Comparable)
-  public static class LongArrayWritable extends ArrayWritable implements Comparable<LongArrayWritable> {
-      // For storing pair of keys
-      public LongArrayWritable(LongWritable[] values) {
-          super(LongWritable.class, values);
-      }
-
-      @Override
-      public LongWritable[] get() {
-          return (LongWritable[]) super.get();
-      }
-
-      @Override
-      public int compareTo(LongArrayWritable other) {
-        // Sort first on first element and on second only if first elements are equal
-        long thisValue1 = this.get()[0].get();
-        long thatValue1 = other.get()[0].get();;
-        if (thisValue1 < thatValue1) {
-          return -1;
-        } else if (thisValue1 > thatValue1) {
-          return 1;
-        } else {
-          long thisValue2 = this.get()[1].get();;
-          long thatValue2 = other.get()[1].get();;
-          return (thisValue2 < thatValue2 ? -1 : (thisValue2==thatValue2 ? 0 : 1));
-        }
-      }
-
-      @Override
-      public String toString() {
-          LongWritable[] values = get();
-          return "(" + values[0].toString() + ", " + values[1].toString() + ")";
-      }
-
-
-  }
-
   public static ArrayList<Long> readAllKeys() {
       ArrayList<Long> keys = new ArrayList<Long>();
 
@@ -125,8 +88,8 @@ public class NaiveSimilarity {
       // only compare a given pair of documents once.
       for (Long otherKey : keys){
         // The following pair is a quick hack to pass a pair of keys, instead
-        //  of defining a new ComparableWritable class which I could not
-        // successfully implement in reasonable time.
+        // of defining a more elegant ComparableWritable.
+        // This new class would not have brought much more (YAGNI principle).
         // We put the lowest key first to be sure that the same pair of
         // documents always have the same key and thus end up in the same reducer.
         // Note that we don't take into account the case where the keys are the same.
@@ -193,6 +156,10 @@ public class NaiveSimilarity {
       float duration = (endTime - startTime);
       duration /= 1000000000;
       System.out.println("***** Elapsed: " + duration + "s *****\n");
+
+      Counters counters = job.getCounters();
+      Counter comparisonsCounter = counters.findCounter(TaskCounter.REDUCE_INPUT_GROUPS);
+      System.out.println("Number of comparisons: " + comparisonsCounter.getValue());
       System.exit(0);
     }
     else {
