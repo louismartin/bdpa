@@ -116,7 +116,7 @@ The following configuration files allows Hadoop and YARN to run in a pseudo-dist
 \end{itemize}
 
 \subsection{Workflow}
-As I ran everythin from the command line interface, I created helper shell scripts
+As I ran everything from the command line interface, I created helper shell scripts
 in order to facilitate the compilation and execution of the mapreduce jobs.
 \begin{itemize}
 
@@ -126,7 +126,7 @@ class of the $.java$ file to compile it into a $.jar$ file.
 \\Usage: \lstinline{./compile.sh Preprocess}.
 \lstinputlisting[language=bash]{assets/code/compile.sh}
 \item \textbf{run.sh}:\\
-The compilation and execution of the mapreduce job is then wrapped into this script.
+The compilation and execution of the map-reduce job is then wrapped into this script.
 It takes as input the main class and the input file or directory.
 \\Usage: \lstinline{./run.sh Preprocess data/corpus}.
 \lstinputlisting[language=bash]{assets/code/run.sh}
@@ -203,6 +203,9 @@ Make sure that the same pair of documents is compared no more than once. Report
 the execution time and the number of performed comparisons.}
 \subsubsection{run\_naive\_similarity.sh}
 We wrapped the execution of the necessary jobs in the \textbf{run\_naive\_similarity.sh}.
+
+As the number of comparisons is simply too large for my computer to handle (too long
+and to much storage taken), I reduced the number of lines to be compared to 5000.
 \lstinputlisting{assets/code/run_naive_similarity.sh}
 
 \subsubsection{NaiveSimilarity.java}
@@ -214,15 +217,14 @@ We wrapped the execution of the necessary jobs in the \textbf{run\_naive\_simila
 
   \item \textbf{Mapper}:\\
   We first read all keys in an array.
-  The mapper then reads each preprocessed lines. It then outputs a pair of the
+  Then the Mapper reads each preprocessed lines. It finally outputs a pair of the
   key of the current line and another key for each other line in the corpus.
   The value is the content of the line.
 
   In order to retrieve the content of both documents, we need to make sure that
   they will end up in the same reducer and hence have the same key.
   We put the lowest key first for always having a single key.
-  This also ensures that each pair is compared only once.
-  More details in the comments:
+  This also ensures that each pair is compared only once (more details in the comments):
   \lstinputlisting[firstnumber=75, firstline=75, lastline=105, language=java]{assets/code/NaiveSimilarity.java}
 
   \item \textbf{Reducer}:\\
@@ -231,11 +233,11 @@ We wrapped the execution of the necessary jobs in the \textbf{run\_naive\_simila
 \end{itemize}
 
 The number of comparison is simply the number of reduce calls given by the \textbf{REDUCE\_INPUT\_GROUPS} counter.
-The number of comparison is \textbf{6610372671} which is exactly $\frac{(n-1) n}{2}$ with $n$ being the number of documents.
+The number of comparison is \textbf{12497500} which is exactly $\frac{(n-1) n}{2}$ with $n=5000$ being the number of documents.
 The first document is compared to $n-1$ documents, the second to $n-2$ documents.
 It is therefore equal to $\sum_{1}^{n-1} = \frac{(n-1) n}{2}$ (not that the upper bound is $n-1$).
 
-The execution time is \textbf{?????????????//}
+The execution time on 5000 documents is \textbf{131.62 s}
 
 \subsection{(40) Create an inverted index, only for the first $|d| - ceil(t \times |d|) + 1$ words of each
 document d (remember that they are stored in ascending order of frequency). In your
@@ -243,11 +245,81 @@ reducer, compute the similarity of the document pairs. Output only similar pairs
 HDFS, in TextOutputFormat. Report the execution time and the number of performed
 comparisons.}
 
+\subsubsection{run\_fast\_similarity.sh}
+We wrapped the execution of the necessary jobs in the \textbf{run\_fast\_similarity.sh}.
+For consistency with the previous method, we also only keep the first 5000 lines.
+\lstinputlisting{assets/code/run_fast_similarity.sh}
 
-Words in ascending order
-Each word is unique in each line -> second method no duplicates value pairs
+\subsubsection{FastSimilarity.java}
+\begin{itemize}
+  \item \textbf{Mapper}:\\
+  The mapper is based in the inverted index mapper from the previous assignment.
+  We output a key value pair for the first words of each document with the key being
+  the current word, and the value, the document it appears in.
+  The first words to take into account is given by the cutoff index: $|d| - ceil(t \times |d|) + 1$.
+  We don't need to index more words because if all those first words don't match,
+  then it was shown that the similarity is below our threshold, hence we can skip
+  the comparison.
+  \lstinputlisting[firstnumber=82, firstline=82, lastline=99, language=java]{assets/code/FastSimilarity.java}
+
+  \item \textbf{Reducer}:\\
+  For each reduce call, the reducer will compare all documents for which the considered
+  word appears.
+
+  Some comparisons will be made multiple times for documents that have several words
+  in common.
+  However, having sorted the words by ascending order of frequency ensures that
+  the most common words are not indexed, and that we make the minimum of comparisons possible.
+
+  In order to skip the duplicated comparisons, we could just have kept track
+  of the pairs that were already compared in a static variable.
+  This could however defeat the purpose of distributed computing (difficult
+  to have one shared static variable between all devices).
+  \lstinputlisting[firstnumber=102, firstline=102, lastline=132, language=java]{assets/code/FastSimilarity.java}
+
+  \item \textbf{Output}:\\
+  Here is an extract of the most similar documents (the output file is cluttered
+  with licence lines which are 100\% similar).
+  \lstinputlisting[firstnumber=309, firstline=309, lastline=319]{assets/code/fastsimilarity.csv}
+\end{itemize}
+
+Our custom counter gives us a number of comparison is \textbf{107200}.
+The execution time is \textbf{2.54 s}.
+This is a huge improvement over the previous method.
+
+
 \subsection{(10) Explain and justify the difference between a) and b) in the number of performed
 comparisons, as well as their difference in execution time.}
+\begin{itemize}
+\item
+In the first algorithm, we naively compared all documents with every other.
+The computation time grows in $n^2$ which is not feasible for a large set of
+documents as is common in big web companies.
+
+\item
+The second smarter method, starts from the idea that documents with very few
+words in common shouldn't even be compared (this is the case for a majority of pairs).
+
+The first idea is to index only the first  $|d| - ceil(t \times |d|) + 1$ which
+ensures that documents with no words in common in those words will have a similarity
+lower than the threshold.
+
+A Second idea is that indexing the rare words before the more common ones will
+also lead to less comparisons. These words will indeed appear in a smaller
+subset of documents hence less comparisons.
 
 \end{itemize}
+
+The difference in execution time is directly linked to the number of comparisons
+and the number of key value pairs that are passed between the mappers and reducers.
+
+
+\section{Conclusion}
+This approach can used for information retrieval with search engines for example.
+The query being the document we want to compare to all others.
+This could also be used for documents clustering, the jaccard similarity giving
+us distances between documents.
+
+In order to improve the relevance of the results we could use more advanced
+similarity measures such as the well know TF-IDF measure.
 \end{document}

@@ -29,6 +29,9 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 public class FastSimilarity {
   public static double threshold = 0.5;
 
+  public static enum ComparisonCounter {
+    COMPARISONS
+  };
 
   public static HashMap<Long, String> readAllDocs() {
       // Read all documents into a HashMap for fast element retrieval.
@@ -96,7 +99,7 @@ public class FastSimilarity {
   }
 
 
-  public static class PostingListReducer
+  public static class CompareReducer
        extends Reducer<Text, LongWritable, Text, Text> {
     private Text outputKey = new Text();
     private Text outputValue = new Text();
@@ -114,6 +117,7 @@ public class FastSimilarity {
           doc1 = allDocs.get(processedKey.get());
           doc2 = allDocs.get(docKey.get());
           float similarity = FastSimilarity.jaccard(doc1, doc2);
+          context.getCounter(ComparisonCounter.COMPARISONS).increment(1);
           if (similarity > threshold){
             outputKey.set("(" + processedKey.toString() + ", " + docKey.toString() + ")");
             outputValue.set(similarity + "\t\"" + doc1 + "\" - \"" + doc2 + "\"");
@@ -146,7 +150,7 @@ public class FastSimilarity {
 
     // Set number of reducers and combiner through cli
     job.setMapperClass(TokenizerMapper.class);
-    job.setReducerClass(PostingListReducer.class);
+    job.setReducerClass(CompareReducer.class);
 
     job.setOutputKeyClass(Text.class);
     job.setOutputValueClass(LongWritable.class);
@@ -159,6 +163,9 @@ public class FastSimilarity {
       duration /= 1000000000;
       System.out.println("***** Elapsed: " + duration + "s *****\n");
 
+      Counters counters = job.getCounters();
+      Counter comparisonCounter = counters.findCounter(ComparisonCounter.COMPARISONS);
+      System.out.println("Number of comparisons: " + comparisonCounter.getValue());
       System.exit(0);
     }
     else {
